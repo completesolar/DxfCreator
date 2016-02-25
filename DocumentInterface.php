@@ -3,14 +3,37 @@
 interface DocumentInterface
 {
     /**
-     * Converts the CAD object into a file at the specified location,
-     * or to the previously saved location if no path given.
-     * 
+     * Add a page to the Shape document.
+     * Specifications can be defined in an Options array
+     *
+     * @param unknown $pageOptions
+     * @return Cad
+     */
+    public function addPage($pageOptions = null);
+
+    public function drawRectangle($page, $x1Position,
+            $y1Position, $x2Position, $y2Position, $drawingOptions = null);
+
+    public function drawText ($text, Page $page, $xPosition,
+            $yPosition, $textOptions);
+
+    public function drawPolygon (array $points, Page $page, $xPosition,
+            $yPosition, $drawingOptions);
+
+    public function drawLine(Page $page, $x1Position,
+            $y1Position, $x2Position, $y2Position, $drawingOptions);
+
+    public function drawCircle($radius, Page $page, $xPosition,
+            $yPosition, $drawingOptions);
+
+    /**
+     * Converts the Document object into a file at the specified location.
+     *
      * @parameters string $filePath
-     * 
+     *
      * @returns null
      */
     public function save($filePath);
-    
-    
+
+
 }

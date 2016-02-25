@@ -1,9 +1,15 @@
-<?php
+<?php namespace DXFWriter;
+require_once __DIR__.'/vendor/autoload.php';
 
-require_once __DIR__.'/../vendor/autoload.php';
+echo "\n\n";
 
-use DXFWriter\CADMaker;
-use DXFWriter\DocumentInterface;
+$cad = new CadMaker();
+$p1 = $cad->addPage();
+$cad->drawRectangle($p1, 10, 10, 20, 20);
+$cad->drawRectangle($p1, 15, 15, 25, 25);
 
-echo date("Y-m-d");
+echo '<pre>';
+print_r($cad);
+exit;
+
 ?>
