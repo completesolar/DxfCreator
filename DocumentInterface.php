@@ -26,14 +26,6 @@ interface DocumentInterface
     public function drawCircle($radius, Page $page, $xPosition,
             $yPosition, $drawingOptions);
 
-    /**
-     * Converts the Document object into a file at the specified location.
-     *
-     * @parameters string $filePath
-     *
-     * @returns null
-     */
-    public function save($filePath);
 
 
 }
