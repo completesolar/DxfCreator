@@ -9,6 +9,7 @@ class Polygon extends Shape
 
     public function __construct(array $newPoints, array $options = null)
     {
+        $this->type = "polygon";
         $this->points = $newPoints;
         $this->setOptions($options);
         $this->setPosition();

@@ -26,7 +26,7 @@ class Page
                 "marginRight" => 0.0,
                 "marginTop" => 0.0,
                 "name" => "",
-                "xLength" => 8.5,
+                "xLength" => 17.0,
                 "yLength" => 11.0,
         );
     }

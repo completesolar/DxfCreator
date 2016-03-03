@@ -87,8 +87,10 @@ class DxfConverter
             if ($pageNum == 0){
                 $id = "*Paper_Space";
             } else {
-                $id = "*Paper_Space" . $pageNum - 1;
+                $id = "*Paper_Space" . ($pageNum - 1);
             }
+
+            //echo "ID = ". $id;
 
             $blockRecordTable->addBlock($this->createBlockRecord($id, $blockRecordHandle, $layoutHandle));
             $this->blocks->addBlock($this->createLayoutBlock($id, $blockRecordHandle));
@@ -104,6 +106,12 @@ class DxfConverter
                     $yLength,
                     $name,
                     $pageNum));
+
+            if (!empty($this->cad->pages[$pageNum]->content)){
+                foreach ($this->cad->pages[$pageNum]->content as $shape){
+                    $this->entities->addBlock($this->getShape($shape, $blockRecordHandle));
+                }
+            }
         }
 
         $layoutDictionary->addBlock($this->createLayoutForDictionary("Model", 22));
@@ -112,6 +120,35 @@ class DxfConverter
         $this->tables->addBlock($blockRecordTable);
         $this->objects->addBlock($layoutDictionary);
         $this->objects->addBlock($layouts);
+    }
+
+    public function getShape(Shape $shape, $layoutBlockRecordHandle)
+    {
+        $dxfShape = new DxfBlock();
+        $dxfShape->add(0, "LWPOLYLINE");
+        $dxfShape->add(5, $this->getNewHandle());
+        $dxfShape->add(330, $layoutBlockRecordHandle);
+        $dxfShape->add(100, "AcDbEntity");
+        $dxfShape->add(67, 1);
+        $dxfShape->add(8, 0);
+        $dxfShape->add(6, "Continuous");
+        $dxfShape->add(62, $shape->lineColor);
+        //$dxfShape->add(370, 200);
+        //$dxfShape->add(370, min($shape->lineWeight*100, 200));
+        $dxfShape->add(370, intval($shape->lineWeight*100));
+        // Options for shape probably go here in group codes found under Common Entity Group Codes
+        $dxfShape->add(100, "AcDbPolyline");
+        $dxfShape->add(90, count($shape->points));
+        $dxfShape->add(70, $shape->type == "line" ? 0 : 1);
+        $dxfShape->add(43, 0.0);
+        //$dxfShape->add(39, $shape->lineWeight);
+
+        foreach ($shape->points as $point){
+            $dxfShape->add(10, $point[0]);
+            $dxfShape->add(20, $point[1]);
+        }
+
+        return $dxfShape;
     }
 
     public function createDictionary($handle, $pointer)
@@ -539,10 +576,10 @@ class DxfConverter
         $layout->add(2, "Kyocera TASKalfa 3050ci XPS"); // don't hardcode this
         $layout->add(4, "");
         $layout->add(6, "");
-        $layout->add(40, $marginL);
-        $layout->add(41, $marginB);
-        $layout->add(42, $marginR);
-        $layout->add(43, $marginT);
+        $layout->add(40, $marginL * 25.4);
+        $layout->add(41, $marginB * 25.4);
+        $layout->add(42, $marginR * 25.4);
+        $layout->add(43, $marginT * 25.4);
         $layout->add(44, $width * 25.4);
         $layout->add(45, $height * 25.4);
         $layout->add(46, "0.0"); //play around with all these

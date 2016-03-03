@@ -24,6 +24,10 @@ class DxfBlock
     public function toString()
     {
         $content = "";
+
+        if (empty($this->body))
+            return "";
+
         foreach($this->body as $entry)
         {
             if (gettype($entry) == "object"){
