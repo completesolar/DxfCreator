@@ -12,8 +12,9 @@ class Page
     public $xLength;
     public $yLength;
 
-    public function __construct($options = null)
+    public function __construct($newName, $options = null)
     {
+        $this->name = $newName;
         $this->setOptions($options);
         $this->content = array();
     }
@@ -25,7 +26,6 @@ class Page
                 "marginLeft" => 0.0,
                 "marginRight" => 0.0,
                 "marginTop" => 0.0,
-                "name" => "",
                 "xLength" => 17.0,
                 "yLength" => 11.0,
         );
@@ -40,7 +40,6 @@ class Page
         $this->marginLeft = $options["marginLeft"];
         $this->marginRight = $options["marginRight"];
         $this->marginTop = $options["marginTop"];
-        $this->name = $options["name"];
         $this->xLength = $options["xLength"];
         $this->yLength = $options["yLength"];
     }

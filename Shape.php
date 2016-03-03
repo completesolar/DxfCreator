@@ -30,6 +30,7 @@ class Shape
 
     public function setColor($color)
     {
+        // Note that AutoCAD 'white' prints black if on a white background
         $colors = ["black", "red", "yellow", "green", "cyan", "blue", "violet", "white"];
 
         $index = array_search(strtolower($color), $colors);

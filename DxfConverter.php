@@ -93,7 +93,8 @@ class DxfConverter
             //echo "ID = ". $id;
 
             $blockRecordTable->addBlock($this->createBlockRecord($id, $blockRecordHandle, $layoutHandle));
-            $this->blocks->addBlock($this->createLayoutBlock($id, $blockRecordHandle));
+            $layoutBlock = $this->createLayoutBlock($id, $blockRecordHandle);
+            //$this->blocks->addBlock($this->createLayoutBlock($id, $blockRecordHandle));
             $layoutDictionary->addBlock($this->createLayoutForDictionary($name, $layoutHandle));
             $layouts->addBlock($this->createLayoutObject(
                     $blockRecordHandle,
@@ -109,9 +110,16 @@ class DxfConverter
 
             if (!empty($this->cad->pages[$pageNum]->content)){
                 foreach ($this->cad->pages[$pageNum]->content as $shape){
-                    $this->entities->addBlock($this->getShape($shape, $blockRecordHandle));
+                    if ($pageNum == 0){
+                        $this->entities->addBlock($this->getShape($shape, $blockRecordHandle));
+                    } else {
+                        $layoutBlock->addBlock($this->getShape($shape, $blockRecordHandle));
+                    }
+
                 }
             }
+
+            $this->blocks->addBlock($layoutBlock);
         }
 
         $layoutDictionary->addBlock($this->createLayoutForDictionary("Model", 22));
@@ -644,33 +652,35 @@ class DxfConverter
 
     public function createLayoutBlock($name, $blockRecordHandle)
     {
-        $block = new DxfBlock();
-        $block->add(0, "BLOCK");
-        $block->add(5, $this->getNewHandle());
-        $block->add(330, $blockRecordHandle);
-        $block->add(100, "AcDbEntity");
+        $preBlock = new DxfBlock();
+        $preBlock->add(0, "BLOCK");
+        $preBlock->add(5, $this->getNewHandle());
+        $preBlock->add(330, $blockRecordHandle);
+        $preBlock->add(100, "AcDbEntity");
         if ($name != "*Model_Space"){
-            $block->add(67, 1);
+            $preBlock->add(67, 1);
         }
-        $block->add(8, 0);
-        $block->add(100, "AcDbBlockBegin");
-        $block->add(2, $name);
-        $block->add(70, 0);
-        $block->add(10, "0.0");
-        $block->add(20, "0.0");
-        $block->add(30, "0.0");
-        $block->add(3, $name);
-        $block->add(1, "");
-        $block->add(0, "ENDBLK");
-        $block->add(5, $this->getNewHandle());
-        $block->add(330, $blockRecordHandle);
-        $block->add(100, "AcDbEntity");
+        $preBlock->add(8, 0);
+        $preBlock->add(100, "AcDbBlockBegin");
+        $preBlock->add(2, $name);
+        $preBlock->add(70, 0);
+        $preBlock->add(10, "0.0");
+        $preBlock->add(20, "0.0");
+        $preBlock->add(30, "0.0");
+        $preBlock->add(3, $name);
+        $preBlock->add(1, "");
+        $postBlock = new DxfBlock();
+        $postBlock->add(0, "ENDBLK");
+        $postBlock->add(5, $this->getNewHandle());
+        $postBlock->add(330, $blockRecordHandle);
+        $postBlock->add(100, "AcDbEntity");
         if ($name != "*Model_Space"){
-            $block->add(67, 1);
+            $postBlock->add(67, 1);
         }
-        $block->add(8, 0);
-        $block->add(100, "AcDbBlockEnd");
-        return $block;
+        $postBlock->add(8, 0);
+        $postBlock->add(100, "AcDbBlockEnd");
+
+        return new DxfContainer($preBlock, $postBlock);
     }
 
     public function createBlockRecord($name, $blockRecordHandle, $layoutHandle)

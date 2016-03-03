@@ -9,7 +9,7 @@ interface DocumentInterface
      * @param unknown $pageOptions
      * @return Cad
      */
-    public function addPage($pageOptions = null);
+    public function addPage($name, $pageOptions = null);
 
     public function drawRectangle($page, $x1Position,
             $y1Position, $x2Position, $y2Position, $drawingOptions = null);

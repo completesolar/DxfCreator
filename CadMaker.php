@@ -49,9 +49,9 @@ class CadMaker implements DocumentInterface
 
     }
 
-    public function addPage($options = null)
+    public function addPage($name, $options = null)
     {
-        $newPage = new Page($options);
+        $newPage = new Page($name, $options);
         $this->pages[] = $newPage;
         return max(array_keys($this->pages));
     }
