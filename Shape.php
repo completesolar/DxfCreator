@@ -1,5 +1,5 @@
 <?php
-namespace DXFWriter;
+namespace DxfCreator;
 
 class Shape
 {

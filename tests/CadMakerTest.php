@@ -1,9 +1,9 @@
 <?php
 
-namespace DXFWriter\tests;
+namespace DxfCreator\tests;
 
-use DXFWriter\CadMaker;
-use DXFWriter\Page;
+use DxfCreator\CadMaker;
+use DxfCreator\Page;
 
 class CadMakerTest extends \PHPUnit_Framework_TestCase
 {

@@ -1,4 +1,4 @@
-<?php namespace DXFWriter;
+<?php namespace DxfCreator;
 class DxfBlock
 {
     private $body;
