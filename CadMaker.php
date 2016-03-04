@@ -1,12 +1,12 @@
-<?php namespace DxfCreator;
+<?php namespace DXFWriter;
 
-use DxfCreator\DocumentInterface;
-use DxfCreator\Section;
-use DxfCreator\Page;
-use DxfCreator\Polygon;
-use DxfCreator\Ellipse;
-use DxfCreator\Line;
-use DxfCreator\Text;
+use DXFWriter\DocumentInterface;
+use DXFWriter\Section;
+use DXFWriter\Page;
+use DXFWriter\Polygon;
+use DXFWriter\Ellipse;
+use DXFWriter\Line;
+use DXFWriter\Text;
 
 class CadMaker implements DocumentInterface
 {

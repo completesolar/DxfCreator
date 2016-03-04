@@ -1,7 +1,7 @@
 <?php
-namespace DxfCreator;
+namespace DXFWriter;
 
-use DxfCreator\Shape;
+use DXFWriter\Shape;
 
 class Text extends Shape
 {

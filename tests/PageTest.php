@@ -1,8 +1,8 @@
 <?php
 
-namespace DxfCreator\tests;
+namespace DXFWriter\tests;
 
-use DxfCreator\Page;
+use DXFWriter\Page;
 
 class PageTest extends \PHPUnit_Framework_TestCase
 {   

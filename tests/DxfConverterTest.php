@@ -1,9 +1,9 @@
 <?php
 
-namespace DxfCreator\tests;
+namespace DXFWriter\tests;
 
-use DxfCreator\DxfConverter;
-use DxfCreator\CadMaker;
+use DXFWriter\DxfConverter;
+use DXFWriter\CadMaker;
 
 class DxfConverterTest extends \PHPUnit_Framework_TestCase
 {

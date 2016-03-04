@@ -1,8 +1,8 @@
 <?php
 
-namespace DxfCreator\tests;
+namespace DXFWriter\tests;
 
-use DxfCreator\DxfBlock;
+use DXFWriter\DxfBlock;
 
 class DxfBlockTest extends \PHPUnit_Framework_TestCase
 {

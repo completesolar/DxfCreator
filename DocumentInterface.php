@@ -1,4 +1,4 @@
-<?php namespace DxfCreator;
+<?php namespace DXFWriter;
 
 interface DocumentInterface
 {

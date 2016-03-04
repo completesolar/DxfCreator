@@ -1,9 +1,9 @@
 <?php
 
-namespace DxfCreator\tests;
+namespace DXFWriter\tests;
 
-use DxfCreator\DxfBlock;
-use DxfCreator\DxfContainer;
+use DXFWriter\DxfBlock;
+use DXFWriter\DxfContainer;
 
 class DxfContainerTest extends \PHPUnit_Framework_TestCase
 {
