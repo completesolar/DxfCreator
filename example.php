@@ -1,40 +1,33 @@
-<?php
-/**
- * @author Alessandro Vernassa 
- */
-ob_start();
-require_once 'dxfwriter.php';
+<?php namespace DXFWriter;
+require_once __DIR__.'/vendor/autoload.php';
+
+$myDocument = new CadMaker();
+
+$pageOptions = [
+        "xLength" => 11.0,
+        "yLength" => 8.5,
+        "marginBottom" => 0.5,
+        "marginLeft" => 0.5,
+        "marginRight" => 0.5,
+        "marginTop" => 0.5,
+];
+
+$page1 = $myDocument->addPage("Page 1", $pageOptions);
+
+$rectangleOptions = ["lineWeight" => 1.0];
+$myDocument->drawRectangle($page1, 0, 0, 10, 7.5, $rectangleOptions);
+$myDocument->drawRectangle($page1, 0, 7.5, 7.5, 6.5, $rectangleOptions);
+$myDocument->drawRectangle($page1, 0, 0, 7.5, 0.5, $rectangleOptions);
+$myDocument->drawRectangle($page1, 7.5, 7.5, 10, 0, $rectangleOptions);
+
+$page2 = $myDocument->addPage("Page 2", $pageOptions);
+
+$myDocument->drawRectangle($page2, 0, 7.5, 10, 7, $rectangleOptions);
+$myDocument->drawRectangle($page2, 0, 0, 3, 7, $rectangleOptions);
+$myDocument->drawRectangle($page2, 3, 0, 7, 7, $rectangleOptions);
+$myDocument->drawRectangle($page2, 7, 0, 10, 7, $rectangleOptions);
+
+$dxf = new DxfConverter($myDocument);
+$dxf->save('C:\Users\John\myDocument.dxf');
+
 ?>
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>DXF Writer</title>
-    </head>
-    <body>
-        <pre>CODE:
-        $shape = new DXF();
-        $shape->addLayer("mylayer", DXF_COLOR_RED);
-        $shape->addLayer("text", DXF_COLOR_BLUE);
-        $shape->addText(12, 110, 0, "HELLO WORLD", 5, "text");
-        $shape->addCircle(50, 100, 0, 50, "mylayer");
-        $shape->addLine(0, 100, 0, 100, 100, 0, "mylayer");
-        </pre>
-        <a href="?download">download dxf</a><br />
-        <?php
-        $shape = new DXF();
-        $shape->addLayer("mylayer", DXF_COLOR_RED);
-        $shape->addLayer("text", DXF_COLOR_BLUE);
-        $shape->addText(12, 110, 0, "HELLO WORLD", 5, "text");
-        $shape->addCircle(50, 100, 0, 50, "mylayer");
-        $shape->addLine(0, 100, 0, 100, 100, 0, "mylayer");
-        if (isset($_GET['download']))
-        {
-            $shape->SaveFile("myFile.dxf");        
-        }
-        $dxfstring = $shape->getString();
-        
-        echo "<h2>dxf string:</h2><pre>$dxfstring</pre>";
-        ?>
-    </body>
-</html>
