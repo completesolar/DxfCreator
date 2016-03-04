@@ -1,4 +1,4 @@
-<?php namespace DXFWriter;
+<?php namespace DxfCreator;
 require_once __DIR__.'/vendor/autoload.php';
 
 // Example of how to use this package

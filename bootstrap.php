@@ -1,3 +1,3 @@
 <?php
 $loader = require __DIR__ . "../vendor/autoload.php";
-$loader->add('DXFWriter\\', __DIR__ . "/../");
+$loader->add('DxfCreator\\', __DIR__ . "/../");
