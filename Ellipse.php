@@ -1,7 +1,7 @@
 <?php
-namespace DXFWriter;
+namespace DxfCreator;
 
-use DXFWriter\Shape;
+use DxfCreator\Shape;
 
 class Ellipse extends Shape
 {
