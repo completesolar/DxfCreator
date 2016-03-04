@@ -1,4 +1,4 @@
-# DXFWriter
+# DxfCreator
 
 This package allows PHP programs to dynamically create .dxf files (ie. CAD drawings). 
 The pacakage is intended for creating multi-page design documents which would eventually be printed. The documents might include tables, text, images, and simple 2D vector drawings. The .dxf files are compatible with AutoCAD, and the package was tested with AutoCAD 2016.
