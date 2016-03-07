@@ -147,9 +147,6 @@ class DxfConverter
             case "LWPOLYLINE":
                 $dxfShape->addBlock($this->getPolygon($shape));
                 break;
-            case "TEXT":
-                $dxfShape->addBlock($this->getText($shape));
-                break;
             case "MTEXT":
                 $dxfShape->addBlock($this->getMText($shape));
                 break;
@@ -199,19 +196,6 @@ class DxfConverter
         }
 
         return $dxfString;
-    }
-
-    public function getText(Text $text)
-    {
-        $dxfText = new DxfBlock();
-        $dxfText->add(100, "AcDbText");
-        $dxfText->add(10, $text->xPosition);
-        $dxfText->add(20, $text->yPosition);
-        $dxfText->add(30, "0.0");
-        $dxfText->add(40, $text->lineHeight);
-        $dxfText->add(1, $text->text);
-        $dxfText->add(100, "AcDbText");
-        return $dxfText;
     }
 
     public function getPolygon(Polygon $polygon)

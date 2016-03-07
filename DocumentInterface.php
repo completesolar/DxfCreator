@@ -18,9 +18,6 @@ interface DocumentInterface
     public function drawText($page, $text, $xPosition,
             $yPosition, $lineHeight, $width = null, $textOptions = null);
 
-    public function drawParagraph($page, $text, $xPosition, $yPosition, $width,
-            $lineHeight, $textOptions = null);
-
     public function drawPolygon (array $points, Page $page, $xPosition,
             $yPosition, $drawingOptions = null);
 
