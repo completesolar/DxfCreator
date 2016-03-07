@@ -1,7 +1,7 @@
 <?php
 namespace DxfCreator;
 
-class Shape
+abstract class Shape
 {
     public $fillColor;
     public $fillType;
@@ -22,7 +22,7 @@ class Shape
 
         $this->fillColor = $this->setColor($options["fillColor"]);
         $this->fillType = $options["fillType"];
-        $this->origin = $options["origin"];
+        $this->origin = $this->setOrigin($options["origin"]);
         $this->lineColor = $this->setColor($options["lineColor"]);
         $this->lineWeight = $this->setLineWeight($options["lineWeight"]);
         $this->lineType = $options["lineType"];
@@ -55,7 +55,7 @@ class Shape
         foreach($lineWeights as $index => $weight){
             if ($index > 0){
                 if($weight > $givenWeight){
-                    if ($weight == 0.05 && $givenWeight != 0.0){
+                    if ($weight == $lineWeights[1] && $givenWeight != 0.0){
                         return $weight;
                     }
                     return ($weight - $givenWeight) < ($givenWeight - $previousWeight) ? $weight : $previousWeight;
@@ -65,7 +65,27 @@ class Shape
             $previousWeight = $weight;
         }
 
-        return 2.11;
+        return $lineWeights[count($lineWeights) - 1];
+    }
+
+    public function setOrigin($origin)
+    {
+        $orientations = [
+                "top left", "top center", "top right",
+                "middle left", "middle center", "middle right",
+                "bottom left", "bottom center", "bottom right"
+        ];
+
+        $index = array_search(strtolower($origin), $orientations);
+        if ($index !== false){
+            return $index + 1;
+        }
+
+        if (is_int($origin) && $origin >= 1 && $origin <= count($orientations)){
+            return $origin;
+        }
+
+        return 1;
     }
 
     public function getDefaults()
@@ -73,7 +93,7 @@ class Shape
         return array(
                 "fillColor" => "green",
                 "fillType" => "solid",
-                "origin" => "bottom-left",
+                "origin" => "bottom left",
                 "lineColor" => "0",
                 "lineWeight" => 0.13,
                 "lineType" => "solid",

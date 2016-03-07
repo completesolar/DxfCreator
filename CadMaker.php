@@ -29,23 +29,29 @@ class CadMaker implements DocumentInterface
         return $this->pages[$page]->add(new Polygon($points, $drawingOptions));
     }
 
-    public function drawText ($text, Page $page, $xPosition,
-            $yPosition, $textOptions){
+    public function drawText($page, $text, $xPosition,
+            $yPosition, $lineHeight, $width = null, $textOptions = null){
+        //return $this->pages[$page]->add(new Text($text, $xPosition, $yPosition, $lineHeight, $textOptions));
+        return $this->pages[$page]->add(new MText($text, $xPosition, $yPosition, $width, $lineHeight, $textOptions));
+    }
 
+    public function drawParagraph($page, $text, $xPosition, $yPosition, $width,
+            $lineHeight, $textOptions = null){
+        return $this->pages[$page]->add(new MText($text, $xPosition, $yPosition, $width, $lineHeight, $textOptions));
     }
 
     public function drawPolygon (array $points, Page $page, $xPosition,
-            $yPosition, $drawingOptions){
+            $yPosition, $drawingOptions = null){
 
     }
 
     public function drawLine(Page $page, $x1Position,
-            $y1Position, $x2Position, $y2Position, $drawingOptions){
+            $y1Position, $x2Position, $y2Position, $drawingOptions = null){
 
     }
 
     public function drawCircle($radius, Page $page, $xPosition,
-            $yPosition, $drawingOptions){
+            $yPosition, $drawingOptions = null){
 
     }
 

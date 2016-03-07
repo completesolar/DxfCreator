@@ -133,7 +133,7 @@ class DxfConverter
     public function getShape(Shape $shape, $layoutBlockRecordHandle)
     {
         $dxfShape = new DxfBlock();
-        $dxfShape->add(0, "LWPOLYLINE");
+        $dxfShape->add(0, $shape->type);
         $dxfShape->add(5, $this->getNewHandle());
         $dxfShape->add(330, $layoutBlockRecordHandle);
         $dxfShape->add(100, "AcDbEntity");
@@ -141,22 +141,93 @@ class DxfConverter
         $dxfShape->add(8, 0);
         $dxfShape->add(6, "Continuous");
         $dxfShape->add(62, $shape->lineColor);
-        //$dxfShape->add(370, 200);
-        //$dxfShape->add(370, min($shape->lineWeight*100, 200));
         $dxfShape->add(370, intval($shape->lineWeight*100));
-        // Options for shape probably go here in group codes found under Common Entity Group Codes
-        $dxfShape->add(100, "AcDbPolyline");
-        $dxfShape->add(90, count($shape->points));
-        $dxfShape->add(70, $shape->type == "line" ? 0 : 1);
-        $dxfShape->add(43, 0.0);
-        //$dxfShape->add(39, $shape->lineWeight);
 
-        foreach ($shape->points as $point){
-            $dxfShape->add(10, $point[0]);
-            $dxfShape->add(20, $point[1]);
+        switch ($shape->type){
+            case "LWPOLYLINE":
+                $dxfShape->addBlock($this->getPolygon($shape));
+                break;
+            case "TEXT":
+                $dxfShape->addBlock($this->getText($shape));
+                break;
+            case "MTEXT":
+                $dxfShape->addBlock($this->getMText($shape));
+                break;
         }
 
         return $dxfShape;
+    }
+
+    public function getMText(MText $mText)
+    {
+        $dxfMText = new DxfBlock();
+        $dxfMText->add(100, "AcDbMText");
+        $dxfMText->add(10, $mText->xPosition);
+        $dxfMText->add(20, $mText->yPosition);
+        $dxfMText->add(30, "0.0");
+        $dxfMText->add(40, $mText->lineHeight);
+        $dxfMText->add(41, $mText->width);
+        $dxfMText->add(46, "0.0");
+        $dxfMText->add(71, $mText->origin);
+        $dxfMText->add(72, 1);
+        $dxfMText->addBlock($this->formatMTextString($mText));
+        $dxfMText->add(73, 1);
+        $dxfMText->add(44, 1.0);
+
+        return $dxfMText;
+    }
+
+    public function formatMTextString(MText $mText)
+    {
+        $bold = $mText->bold? 1 : 0;
+        $italic = $mText->italic? 1 : 0;
+        $underlineBegin = $mText->underline? '\L' : '';
+        $underlineEnd = $mText->underline? '\l' : '';
+        $textString =  '{\f' . $mText->font . '|b' . $bold . '|i' . $italic
+                . '|c0|p0;' . $underlineBegin . $mText->text . $underlineEnd . '}';
+
+        $chunks = str_split($textString, 250);
+
+        $dxfString = new DxfBlock();
+
+        for ($chunk = 0; $chunk < count($chunks); $chunk++){
+            if ($chunk == count($chunks) - 1){
+               $dxfString->add(1, $chunks[$chunk]);
+            } else {
+                $dxfString->add(3, $chunks[$chunk]);
+            }
+        }
+
+        return $dxfString;
+    }
+
+    public function getText(Text $text)
+    {
+        $dxfText = new DxfBlock();
+        $dxfText->add(100, "AcDbText");
+        $dxfText->add(10, $text->xPosition);
+        $dxfText->add(20, $text->yPosition);
+        $dxfText->add(30, "0.0");
+        $dxfText->add(40, $text->lineHeight);
+        $dxfText->add(1, $text->text);
+        $dxfText->add(100, "AcDbText");
+        return $dxfText;
+    }
+
+    public function getPolygon(Polygon $polygon)
+    {
+        $dxfPolygon = new DxfBlock();
+        $dxfPolygon->add(100, "AcDbPolyline");
+        $dxfPolygon->add(90, count($polygon->points));
+        $dxfPolygon->add(70, $polygon->type == "line" ? 0 : 1);
+        $dxfPolygon->add(43, 0.0);
+
+        foreach ($polygon->points as $point){
+            $dxfPolygon->add(10, $point[0]);
+            $dxfPolygon->add(20, $point[1]);
+        }
+
+        return $dxfPolygon;
     }
 
     public function createDictionary($handle, $pointer)
