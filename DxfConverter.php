@@ -180,7 +180,7 @@ class DxfConverter
         $italic = $mText->italic? 1 : 0;
         $underlineBegin = $mText->underline? '\L' : '';
         $underlineEnd = $mText->underline? '\l' : '';
-        $textString =  '{\f' . $mText->font . '|b' . $bold . '|i' . $italic
+        $textString =  '\A1;{\f' . $mText->font . '|b' . $bold . '|i' . $italic
                 . '|c0|p0;' . $underlineBegin . $mText->text . $underlineEnd . '}';
 
         $chunks = str_split($textString, 250);

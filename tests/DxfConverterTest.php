@@ -7,6 +7,83 @@ use DxfCreator\CadMaker;
 
 class DxfConverterTest extends \PHPUnit_Framework_TestCase
 {
+    public function testTextOnMultiplePages()
+    {
+        $cad = new CadMaker();
+        $p1 = $cad->addPage("Page 1");
+        $p2 = $cad->addPage("Page 2");
+        $p3 = $cad->addPage("Page 3");
+        $p4 = $cad->addPage("Page 4");
+
+        $cad->drawText($p1, "This is the text on Page 1. I hope it does its job!", 1, 7, 1, 14);
+        $cad->drawText($p2, "This is the text on Page 2. I hope it does its job!", 1, 7, 1, 14);
+        $cad->drawText($p3, "This is the text on Page 3. I hope it does its job!", 1, 7, 1, 14);
+        $cad->drawText($p4, "This is the text on Page 4. I hope it does its job!", 1, 7, 1, 14);
+
+        $dxf = new DxfConverter($cad);
+        $dxf->save('tests/temp/testTextOnMultiplePages.dxf');
+
+        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testTextOnMultiplePages.dxf'));
+        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testTextOnMultiplePages.dxf'));
+
+        $this->assertEquals($fileExpected, $fileGenerated);
+    }
+
+    public function testTextStyles()
+    {
+        $cad = new CadMaker();
+        $p1 = $cad->addPage("Page 1");
+        $cad->drawText($p1, "Bold", 1, 10, 0.3, null, ["bold" => true]);
+        $cad->drawText($p1, "Italic", 2, 9, 0.3, null, ["italic" => true]);
+        $cad->drawText($p1, "Underline", 3, 8, 0.3, null, ["underline" => true]);
+        $cad->drawText($p1, "Bold, Italic, and Underline", 4, 7, 0.3, null, ["bold" => true, "italic" => true, "underline" => true]);
+        $cad->drawText($p1, "The font is Times New Roman", 5, 6, 0.3, null, ["font" => "Times New Roman"]);
+        $cad->drawText($p1, '\LThis\l \Ouses\o \C1;the special\C0; \fArial|b0|i1|c0|p34;format\fArial|b0|i0|c0|p34;'
+                . ' \fArial|b1|i0|c0|p34;codes\fArial|b0|i0|c0|p34; \H0.7x;\S^ embedded;\H1.4286x; \H0.5x;\Sin/th'
+                . 'e; \H2x;\W2;string \fCourier New|b0|i0|c0|p49;\W1;itself', 6, 5, 0.3);
+        $cad->drawText($p1, 'See \C5;\Lhttp://docs.autodesk.com/ACD/2010/ENU/AutoCAD%202010%20User%20Documentation/index.h'
+                . 'tml?url=WS1a9193826455f5ffa23ce210c4a30acaf-63b9.htm,topicNumber=d0e123454\l \C0;for details on format '
+                . 'codes', 0.5, 4, 0.15);
+
+        $dxf = new DxfConverter($cad);
+        $dxf->save('tests/temp/testTextStyles.dxf');
+
+        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testTextStyles.dxf'));
+        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testTextStyles.dxf'));
+
+        $this->assertEquals($fileExpected, $fileGenerated);
+
+    }
+
+    public function testDrawTextWithWidthLimit()
+    {
+        $cad = new CadMaker();
+        $p1 = $cad->addPage("Page 1");
+        $cad->drawText($p1, "This is text that has a limit on the width of the paragraph.", 2, 5, 0.3, 3);
+
+        $dxf = new DxfConverter($cad);
+        $dxf->save('tests/temp/testDrawTextWithWidthLimit.dxf');
+
+        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testDrawTextWithWidthLimit.dxf'));
+        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testDrawTextWithWidthLimit.dxf'));
+
+        $this->assertEquals($fileExpected, $fileGenerated);
+    }
+
+    public function testDrawText()
+    {
+        $cad = new CadMaker();
+        $p1 = $cad->addPage("Page 1");
+        $cad->drawText($p1, "This is text!", 2, 3, 0.2);
+
+        $dxf = new DxfConverter($cad);
+        $dxf->save('tests/temp/testDrawText.dxf');
+
+        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testDrawText.dxf'));
+        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testDrawText.dxf'));
+
+        $this->assertEquals($fileExpected, $fileGenerated);
+    }
 
     /*
      * Note that AutoCAD 'white' (index #7) prints black if on a white background
@@ -32,8 +109,6 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testRectangleOptions.dxf'));
 
         $this->assertEquals($fileExpected, $fileGenerated);
-
-
     }
 
     public function testDrawManyRectanglesOnManyPages()
