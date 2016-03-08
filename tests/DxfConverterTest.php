@@ -63,7 +63,7 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "Bold", 1, 10, 0.3, null, ["bold" => true]);
         $cad->drawText($p1, "Italic", 2, 9, 0.3, null, ["italic" => true]);
-        $cad->drawText($p1, "Underline", 3, 8, 0.3, null, ["underline" => true]);
+        $cad->drawText($p1, "Underlined", 3, 8, 0.3, null, ["underline" => true]);
         $cad->drawText($p1, "Bold, Italic, and Underline", 4, 7, 0.3, null, ["bold" => true, "italic" => true, "underline" => true]);
         $cad->drawText($p1, "The font is Times New Roman", 5, 6, 0.3, null, ["font" => "Times New Roman"]);
         $cad->drawText($p1, '\LThis\l \Ouses\o \C1;the special\C0; \fArial|b0|i1|c0|p34;format\fArial|b0|i0|c0|p34;'
