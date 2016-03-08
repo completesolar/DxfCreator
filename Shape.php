@@ -1,7 +1,7 @@
 <?php
 namespace DxfCreator;
 
-abstract class Shape
+class Shape
 {
     public $fillColor;
     public $fillType;
@@ -15,9 +15,8 @@ abstract class Shape
 
     public $type;
 
-    public function setOptions($optionsGiven = null)
+    public function setOptions($optionsGiven)
     {
-        $optionsGiven = is_null($optionsGiven) ? [] : $optionsGiven;
         $options = array_replace($this->getDefaults(), $optionsGiven);
 
         $this->fillColor = $this->setColor($options["fillColor"]);
@@ -52,13 +51,18 @@ abstract class Shape
         ];
 
         $previousWeight = 0;
+
+        if (!is_numeric($givenWeight)){
+            return 0;
+        }
+
         foreach($lineWeights as $index => $weight){
             if ($index > 0){
                 if($weight > $givenWeight){
                     if ($weight == $lineWeights[1] && $givenWeight != 0.0){
                         return $weight;
                     }
-                    return ($weight - $givenWeight) < ($givenWeight - $previousWeight) ? $weight : $previousWeight;
+                    return ($weight - $givenWeight) <= ($givenWeight - $previousWeight) ? $weight : $previousWeight;
                 }
             }
 

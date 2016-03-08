@@ -13,7 +13,7 @@ class MText extends Shape
     public $underline;
     public $width;
 
-    public function __construct($text, $xPosition, $yPosition, $lineHeight, $width = null, $textOptions = null)
+    public function __construct($text, $xPosition, $yPosition, $lineHeight, $width = null, $textOptions = [])
     {
         $this->type = "MTEXT";
         $this->text = $text;
@@ -24,10 +24,9 @@ class MText extends Shape
         $this->setOptions($textOptions);
     }
 
-    public function setOptions($optionsGiven = null)
+    public function setOptions($optionsGiven = [])
     {
         parent::setOptions($optionsGiven);
-        $optionsGiven = is_null($optionsGiven) ? [] : $optionsGiven;
         $options = array_replace($this->getTextDefaults(), $optionsGiven);
 
         $this->font = $options["font"];

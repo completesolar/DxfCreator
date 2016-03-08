@@ -19,7 +19,7 @@ class CadMaker implements DocumentInterface
     }
 
     public function drawRectangle($page, $x1Position,
-            $y1Position, $x2Position, $y2Position, $drawingOptions = null){
+            $y1Position, $x2Position, $y2Position, $drawingOptions = []){
 
         $points = array(4);
         $points[0] = [$x1Position, $y1Position];
@@ -30,13 +30,13 @@ class CadMaker implements DocumentInterface
     }
 
     public function drawText($page, $text, $xPosition,
-            $yPosition, $lineHeight, $width = null, $textOptions = null){
+            $yPosition, $lineHeight, $width = null, $textOptions = []){
 
         return $this->pages[$page]->add(new MText($text, $xPosition, $yPosition, $lineHeight, $width, $textOptions));
     }
 
     public function drawPolygon (array $points, Page $page, $xPosition,
-            $yPosition, $drawingOptions = null){
+            $yPosition, $drawingOptions = []){
 
     }
 

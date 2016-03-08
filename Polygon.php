@@ -7,7 +7,7 @@ class Polygon extends Shape
 {
     public $points;
 
-    public function __construct(array $newPoints, array $options = null)
+    public function __construct(array $newPoints, array $options = [])
     {
         $this->type = "LWPOLYLINE";
         $this->points = $newPoints;

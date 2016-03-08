@@ -7,6 +7,34 @@ use DxfCreator\CadMaker;
 
 class DxfConverterTest extends \PHPUnit_Framework_TestCase
 {
+
+    public function testTextOrientations()
+    {
+        $cad = new CadMaker();
+        $p1 = $cad->addPage("Page 1");
+        $cad->drawText($p1, "The squares are references. The Top left corner of each square is the position for each text object.", 1, 10.75, 0.3);
+        $cad->drawText($p1, "TL", 1, 10, 0.5, null, ["origin" => "top left"]);
+        $cad->drawRectangle($p1, 1, 10, 3, 8);
+        $cad->drawText($p1, "TC", 5, 10, 0.5, null, ["origin" => "top center"]);
+        $cad->drawRectangle($p1, 5, 10, 7, 8);
+        $cad->drawText($p1, "TR", 9, 10, 0.5, null, ["origin" => "top right"]);
+        $cad->drawRectangle($p1, 9, 10, 11, 8);
+        $cad->drawText($p1, "ML", 1, 7, 0.5, null, ["origin" => "middle left"]);
+        $cad->drawRectangle($p1, 1, 7, 3, 5);
+        $cad->drawText($p1, "MC", 5, 7, 0.5, null, ["origin" => "middle center"]);
+        $cad->drawRectangle($p1, 5, 7, 7, 5);
+        $cad->drawText($p1, "MR", 9, 7, 0.5, null, ["origin" => "middle right"]);
+        $cad->drawRectangle($p1, 9, 7, 11, 5);
+        $cad->drawText($p1, "BL", 1, 4, 0.5, null, ["origin" => "bottom left"]);
+        $cad->drawRectangle($p1, 1, 4, 3, 2);
+        $cad->drawText($p1, "BC", 5, 4, 0.5, null, ["origin" => "bottom center"]);
+        $cad->drawRectangle($p1, 5, 4, 7, 2);
+        $cad->drawText($p1, "BR", 9, 4, 0.5, null, ["origin" => "bottom right"]);
+        $cad->drawRectangle($p1, 9, 4, 11, 2);
+        $dxf = new DxfConverter($cad);
+        $dxf->save('tests/temp/testTextOrientations.dxf');
+    }
+
     public function testTextOnMultiplePages()
     {
         $cad = new CadMaker();
