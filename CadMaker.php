@@ -57,4 +57,10 @@ class CadMaker implements DocumentInterface
         return max(array_keys($this->pages));
     }
 
+    public function insertPdf($page, $filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor)
+    {
+        return $this->pages[$page]->add(new Pdf($filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor));
+    }
+
+
 }

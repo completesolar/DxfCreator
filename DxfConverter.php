@@ -109,11 +109,26 @@ class DxfConverter
                     $pageNum));
 
             if (!empty($this->cad->pages[$pageNum]->content)){
-                foreach ($this->cad->pages[$pageNum]->content as $shape){
+                foreach ($this->cad->pages[$pageNum]->content as $object){
+
                     if ($pageNum == 0){
-                        $this->entities->addBlock($this->getShape($shape, $blockRecordHandle));
+                        if (get_class($object) == 'DxfCreator\Pdf'){
+                            $pdfEntityHandle = $this->getNewHandle();
+                            $pdfDefinitionHandle = $this->getNewHandle();
+                            $this->entities->addBlock($this->getPdfEntity($object, $pdfEntityHandle, $pdfDefinitionHandle, $blockRecordHandle));
+                            $this->objects->addBlock($this->getPdfDefinition($object, $pdfEntityHandle, $pdfDefinitionHandle));
+                        } else {
+                            $this->entities->addBlock($this->getShape($object, $blockRecordHandle));
+                        }
                     } else {
-                        $layoutBlock->addBlock($this->getShape($shape, $blockRecordHandle));
+                        if (get_class($object) == 'DxfCreator\Pdf'){
+                            $pdfEntityHandle = $this->getNewHandle();
+                            $pdfDefinitionHandle = $this->getNewHandle();
+                            $layoutBlock->addBlock($this->getPdfEntity($object, $pdfEntityHandle, $pdfDefinitionHandle, $blockRecordHandle));
+                            $this->objects->addBlock($this->getPdfDefinition($object, $pdfEntityHandle, $pdfDefinitionHandle));
+                        } else {
+                            $layoutBlock->addBlock($this->getShape($object, $blockRecordHandle));
+                        }
                     }
 
                 }
@@ -128,6 +143,45 @@ class DxfConverter
         $this->tables->addBlock($blockRecordTable);
         $this->objects->addBlock($layoutDictionary);
         $this->objects->addBlock($layouts);
+    }
+
+
+    public function getPdfDefinition(Pdf $pdf, $entityHandle, $definitionHandle)
+    {
+        $pdfDefinition = new DxfBlock();
+        $pdfDefinition->add(0, "PDFDEFINITION");
+        $pdfDefinition->add(5, $definitionHandle);
+        $pdfDefinition->add(102, "{ACAD_REACTORS");
+        $pdfDefinition->add(330, $entityHandle);
+        $pdfDefinition->add(102, "}");
+        $pdfDefinition->add(100, "AcDbUnderlayDefinition");
+        $pdfDefinition->add(1, $pdf->filepath);
+        $pdfDefinition->add(2, $pdf->page);
+
+        return $pdfDefinition;
+    }
+
+    public function getPdfEntity(Pdf $pdf, $entityHandle, $defintionHandle, $layoutBlockRecordHandle)
+    {
+        $pdfEntity = new DxfBlock();
+        $pdfEntity->add(0, "PDFUNDERLAY");
+        $pdfEntity->add(5, $entityHandle);
+        $pdfEntity->add(330, $layoutBlockRecordHandle);
+        $pdfEntity->add(100, "AcDbEntity");
+        $pdfEntity->add(67, 1);
+        $pdfEntity->add(8, 0);
+        $pdfEntity->add(100, "AcDbUnderlayReference");
+        $pdfEntity->add(340, $defintionHandle);
+        $pdfEntity->add(10, $pdf->xPosition);
+        $pdfEntity->add(20, $pdf->yPosition);
+        $pdfEntity->add(30, 0.0);
+        $pdfEntity->add(41, $pdf->scaleFactor);
+        $pdfEntity->add(42, $pdf->scaleFactor);
+        $pdfEntity->add(43, 1.0);
+        $pdfEntity->add(281, 100);
+        $pdfEntity->add(282, 0);
+
+        return $pdfEntity;
     }
 
     public function getShape(Shape $shape, $layoutBlockRecordHandle)
