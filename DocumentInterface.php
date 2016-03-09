@@ -27,6 +27,8 @@ interface DocumentInterface
     public function drawCircle($radius, Page $page, $xPosition,
             $yPosition, $drawingOptions = null);
 
+    public function insertPdf($page, $filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor);
+
 
 
 }
