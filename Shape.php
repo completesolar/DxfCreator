@@ -9,6 +9,8 @@ class Shape
     public $lineColor;
     public $lineType;
     public $lineWeight;
+    public $angle;
+    public $rotationPoint;
 
     public $xPosition;
     public $yPosition;
@@ -25,6 +27,17 @@ class Shape
         $this->lineColor = $this->setColor($options["lineColor"]);
         $this->lineWeight = $this->setLineWeight($options["lineWeight"]);
         $this->lineType = $options["lineType"];
+        $this->angle = $options["angle"];
+        $this->rotationPoint = $this->setRotationPoint($options["rotationPoint"]);
+    }
+
+    public function setRotationPoint($rotationPoint)
+    {
+        if (is_array($rotationPoint) && is_numeric($rotationPoint[0]) && is_numeric($rotationPoint[1])){
+            return $rotationPoint;
+        }
+
+        return [0,0];
     }
 
     public function setColor($color)
@@ -101,6 +114,8 @@ class Shape
                 "lineColor" => "0",
                 "lineWeight" => 0.13,
                 "lineType" => "solid",
+                "angle" => 0,
+                "rotationPoint" => [0,0],
         );
     }
 

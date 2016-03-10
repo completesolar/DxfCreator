@@ -41,25 +41,30 @@ class CadMaker implements DocumentInterface
     }
 
     public function drawLine(Page $page, $x1Position,
-            $y1Position, $x2Position, $y2Position, $drawingOptions = null){
+            $y1Position, $x2Position, $y2Position, $drawingOptions = []){
 
     }
 
     public function drawCircle($radius, Page $page, $xPosition,
-            $yPosition, $drawingOptions = null){
+            $yPosition, $drawingOptions = []){
 
     }
 
-    public function addPage($name, $options = null)
+    public function addPage($name, $options = [])
     {
         $newPage = new Page($name, $options);
         $this->pages[] = $newPage;
         return max(array_keys($this->pages));
     }
 
-    public function insertPdf($page, $filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor)
+    public function insertPdf($page, $filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor, $options = [])
     {
-        return $this->pages[$page]->add(new Pdf($filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor));
+        return $this->pages[$page]->add(new Pdf($filepath, $pdfPage, $xPosition, $yPosition, $scaleFactor, $options));
+    }
+
+    public function insertImage($page, $filepath, $xPosition, $yPosition, $width, $options = [])
+    {
+        return $this->pages[$page]->add(new Image($filepath, $xPosition, $yPosition, $width, $options));
     }
 
 
