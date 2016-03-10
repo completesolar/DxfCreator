@@ -111,24 +111,19 @@ class DxfConverter
             if (!empty($this->cad->pages[$pageNum]->content)){
                 foreach ($this->cad->pages[$pageNum]->content as $object){
 
-                    if ($pageNum == 0){
-                        if (get_class($object) == 'DxfCreator\Pdf'){
-                            $pdfEntityHandle = $this->getNewHandle();
-                            $pdfDefinitionHandle = $this->getNewHandle();
-                            $this->entities->addBlock($this->getPdfEntity($object, $pdfEntityHandle, $pdfDefinitionHandle, $blockRecordHandle));
-                            $this->objects->addBlock($this->getPdfDefinition($object, $pdfEntityHandle, $pdfDefinitionHandle));
-                        } else {
-                            $this->entities->addBlock($this->getShape($object, $blockRecordHandle));
-                        }
+                    $entityHandle = $this->getNewHandle();
+
+                    if (is_a($object, "DxfCreator\File")){
+                        $definitionHandle = $this->getNewHandle();
+                        $this->objects->addBlock($this->getDefinition($object, $entityHandle, $definitionHandle));
                     } else {
-                        if (get_class($object) == 'DxfCreator\Pdf'){
-                            $pdfEntityHandle = $this->getNewHandle();
-                            $pdfDefinitionHandle = $this->getNewHandle();
-                            $layoutBlock->addBlock($this->getPdfEntity($object, $pdfEntityHandle, $pdfDefinitionHandle, $blockRecordHandle));
-                            $this->objects->addBlock($this->getPdfDefinition($object, $pdfEntityHandle, $pdfDefinitionHandle));
-                        } else {
-                            $layoutBlock->addBlock($this->getShape($object, $blockRecordHandle));
-                        }
+                        $definitionHandle = null;
+                    }
+
+                    if ($pageNum == 0){
+                        $this->entities->addBlock($this->getShape($object, $entityHandle, $blockRecordHandle, $definitionHandle));
+                    } else {
+                        $layoutBlock->addBlock($this->getShape($object, $entityHandle, $blockRecordHandle, $definitionHandle));
                     }
 
                 }
@@ -146,6 +141,39 @@ class DxfConverter
     }
 
 
+    public function getDefinition(File $file, $entityHandle, $definitionHandle)
+    {
+        $definition = new DxfBlock();
+
+        switch ($file->type)
+        {
+            case "IMAGE":
+                $definition->addBlock($this->getImageDefinition($file, $definitionHandle));
+                break;
+            case "PDFUNDERLAY":
+                $definition->addBlock($this->getPdfDefinition($file, $entityHandle, $definitionHandle));
+                break;
+        }
+
+        return $definition;
+    }
+
+    public function getImageDefinition(Image $image, $definitionHandle)
+    {
+        $imageDefinition = new DxfBlock();
+        $imageDefinition->add(0, "IMAGEDEF");
+        $imageDefinition->add(5, $definitionHandle);
+        $imageDefinition->add(100, "AcDbRasterImageDef");
+        $imageDefinition->add(90, 0);
+        $imageDefinition->add(1, $image->filepath);
+        $imageDefinition->add(10, $image->widthPx);
+        $imageDefinition->add(20, $image->heightPx);
+        $imageDefinition->add(280, 1);
+        $imageDefinition->add(281, 2);
+
+        return $imageDefinition;
+    }
+
     public function getPdfDefinition(Pdf $pdf, $entityHandle, $definitionHandle)
     {
         $pdfDefinition = new DxfBlock();
@@ -161,15 +189,9 @@ class DxfConverter
         return $pdfDefinition;
     }
 
-    public function getPdfEntity(Pdf $pdf, $entityHandle, $defintionHandle, $layoutBlockRecordHandle)
+    public function getPdfUnderlay(Pdf $pdf, $defintionHandle)
     {
         $pdfEntity = new DxfBlock();
-        $pdfEntity->add(0, "PDFUNDERLAY");
-        $pdfEntity->add(5, $entityHandle);
-        $pdfEntity->add(330, $layoutBlockRecordHandle);
-        $pdfEntity->add(100, "AcDbEntity");
-        $pdfEntity->add(67, 1);
-        $pdfEntity->add(8, 0);
         $pdfEntity->add(100, "AcDbUnderlayReference");
         $pdfEntity->add(340, $defintionHandle);
         $pdfEntity->add(10, $pdf->xPosition);
@@ -184,18 +206,58 @@ class DxfConverter
         return $pdfEntity;
     }
 
-    public function getShape(Shape $shape, $layoutBlockRecordHandle)
+    public function getImage(Image $image, $definitionHandle)
+    {
+        $dxfImage = new DxfBlock();
+        $dxfImage->add(100, "AcDbRasterImage");
+        $dxfImage->add(90, 0);
+//         $dxfImage->add(10, $image->xPosition);
+//         $dxfImage->add(20, $image->yPosition);
+        $dxfImage->add(10, $image->xPosition + $image->rotationPoint[0] - $image->rotationPoint[0]*cos(deg2rad($image->angle))
+                + $image->rotationPoint[1]*sin(deg2rad($image->angle)));
+        $dxfImage->add(20, $image->yPosition + $image->rotationPoint[1] - $image->rotationPoint[1]*cos(deg2rad($image->angle))
+                - $image->rotationPoint[0]*sin(deg2rad($image->angle)));
+        $dxfImage->add(30, "0.0");
+        $dxfImage->add(11, ($image->widthInch / $image->widthPx) * cos(deg2rad($image->angle)));
+        $dxfImage->add(21, ($image->widthInch / $image->widthPx) * sin(deg2rad($image->angle)));
+        $dxfImage->add(31, "0.0");
+        $dxfImage->add(12, ($image->widthInch / $image->widthPx) * cos(deg2rad($image->angle + 90)));
+        $dxfImage->add(22, ($image->widthInch / $image->widthPx) * sin(deg2rad($image->angle + 90)));
+        $dxfImage->add(32, "0.0");
+        $dxfImage->add(13, $image->widthPx);
+        $dxfImage->add(23, $image->heightPx);
+        $dxfImage->add(340, $definitionHandle);
+        $dxfImage->add(70, 7);
+        $dxfImage->add(280, 0);
+        $dxfImage->add(281, 50);
+        $dxfImage->add(282, 50);
+        $dxfImage->add(283, 0);
+        $dxfImage->add(290, 0);
+        $dxfImage->add(71, 1);
+        $dxfImage->add(91, 2);
+        $dxfImage->add(14, -0.5);
+        $dxfImage->add(24, -0.5);
+        $dxfImage->add(14, $image->widthPx - 0.5);
+        $dxfImage->add(24, $image->heightPx - 0.5);
+
+        return $dxfImage;
+    }
+
+    public function getShape(Shape $shape, $entityHandle, $layoutBlockRecordHandle, $definitionHandle)
     {
         $dxfShape = new DxfBlock();
         $dxfShape->add(0, $shape->type);
-        $dxfShape->add(5, $this->getNewHandle());
+        $dxfShape->add(5, $entityHandle);
         $dxfShape->add(330, $layoutBlockRecordHandle);
         $dxfShape->add(100, "AcDbEntity");
         $dxfShape->add(67, 1);
         $dxfShape->add(8, 0);
-        $dxfShape->add(6, "Continuous");
-        $dxfShape->add(62, $shape->lineColor);
-        $dxfShape->add(370, intval($shape->lineWeight*100));
+
+        if(!is_a($shape, "DxfCreator\File")){
+            $dxfShape->add(6, "Continuous");
+            $dxfShape->add(62, $shape->lineColor);
+            $dxfShape->add(370, intval($shape->lineWeight*100));
+        }
 
         switch ($shape->type){
             case "LWPOLYLINE":
@@ -203,6 +265,12 @@ class DxfConverter
                 break;
             case "MTEXT":
                 $dxfShape->addBlock($this->getMText($shape));
+                break;
+            case "IMAGE":
+                $dxfShape->addBlock($this->getImage($shape, $definitionHandle));
+                break;
+            case "PDFUNDERLAY":
+                $dxfShape->addBlock($this->getPdfUnderlay($shape, $definitionHandle));
                 break;
         }
 
