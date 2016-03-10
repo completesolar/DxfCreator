@@ -10,25 +10,129 @@ class DxfConverter
     private $objects;
     private $handseed;
 
-    public function getNewHandle()
-    {
-        $this->handseed = strtoupper(dechex(hexdec($this->handseed) + 1));
-        return $this->handseed;
-    }
-
     public function __construct(CadMaker $newCad)
     {
         $this->cad = $newCad;
-        $this->header = $this->makeSection("HEADER");
-        $this->tables = $this->makeSection("TABLES");
-        $this->blocks = $this->makeSection("BLOCKS");
-        $this->entities = $this->makeSection("ENTITIES");
-        $this->objects = $this->makeSection("OBJECTS");
+    }
+
+    public function save($filePath)
+    {
+        $this->setUp();
+        $this->extractContent();
+        $this->header->addBlock($this->handseedVariable());
+        $this->writeToFile($filePath);
+    }
+
+    private function writeToFile($filePath)
+    {
+        $file = new DxfBlock();
+        $file->addBlock($this->header);
+        $file->addBlock($this->tables);
+        $file->addBlock($this->blocks);
+        $file->addBlock($this->entities);
+        $file->addBlock($this->objects);
+        $file->add(0, "EOF");
+
+        file_put_contents($filePath, $file->toString());
+    }
+
+    private function handseedVariable()
+    {
+        $handseedVariable = new DxfBlock();
+        $handseedVariable->add(9, '$HANDSEED');
+        $handseedVariable->add(5, $this->getNewHandle());
+        return $handseedVariable;
+    }
+
+    private function extractContent()
+    {
+        $blockRecordTable = $this->createBlockRecordTable();
+        $blockRecordTable->addBlock($this->createBlockRecord("*Model_Space", "1F", 22));
+        $layoutDictionary = $this->createLayoutDictionary();
+        $layouts = new DxfBlock();
+
+        for ($pageNum = 0; $pageNum < count($this->cad->pages); $pageNum++){
+
+            $this->extractPageContent($pageNum, $blockRecordTable, $layoutDictionary, $layouts);
+        }
+
+        $layoutDictionary->addBlock($this->createLayoutForDictionary("Model", 22));
+        $layouts->addBlock($this->createModelObject());
+
+        $this->tables->addBlock($blockRecordTable);
+        $this->objects->addBlock($layoutDictionary);
+        $this->objects->addBlock($layouts);
+    }
+
+    private function extractPageContent($pageNum, &$blockRecordTable, &$layoutDictionary, &$layouts)
+    {
+        $marginBottom = $this->cad->pages[$pageNum]->marginBottom;
+        $marginLeft = $this->cad->pages[$pageNum]->marginLeft;
+        $marginRight = $this->cad->pages[$pageNum]->marginRight;
+        $marginTop = $this->cad->pages[$pageNum]->marginTop;
+        $name = $this->cad->pages[$pageNum]->name;
+        $xLength = $this->cad->pages[$pageNum]->xLength;
+        $yLength = $this->cad->pages[$pageNum]->yLength;
+        $blockRecordHandle = $this->getNewHandle();
+        $layoutHandle = $this->getNewHandle();
+
+        if ($pageNum == 0){
+            $id = "*Paper_Space";
+        } else {
+            $id = "*Paper_Space" . ($pageNum - 1);
+        }
+
+        $blockRecordTable->addBlock($this->createBlockRecord($id, $blockRecordHandle, $layoutHandle));
+        $layoutBlock = $this->createLayoutBlock($id, $blockRecordHandle);
+        $layoutDictionary->addBlock($this->createLayoutForDictionary($name, $layoutHandle));
+        $layouts->addBlock($this->createLayoutObject($blockRecordHandle, $layoutHandle, $marginLeft,
+                $marginBottom, $marginRight, $marginTop, $xLength, $yLength, $name, $pageNum));
+
+        if (!empty($this->cad->pages[$pageNum]->content)){
+            foreach ($this->cad->pages[$pageNum]->content as $object){
+                $this->extractObject($pageNum, $object, $blockRecordHandle, $layoutBlock);
+            }
+        }
+
+        $this->blocks->addBlock($layoutBlock);
+    }
+
+    private function extractObject($pageNum, $object, $blockRecordHandle, &$layoutBlock)
+    {
+        $entityHandle = $this->getNewHandle();
+
+        if (is_a($object, "DxfCreator\File")){
+            $definitionHandle = $this->getNewHandle();
+            $this->objects->addBlock($this->getDefinition($object, $entityHandle, $definitionHandle));
+        } else {
+            $definitionHandle = null;
+        }
+
+        if ($pageNum == 0){
+            $this->entities->addBlock($this->getShape($object, $entityHandle, $blockRecordHandle, $definitionHandle));
+        } else {
+            $layoutBlock->addBlock($this->getShape($object, $entityHandle, $blockRecordHandle, $definitionHandle));
+        }
+    }
+
+    private function setUp()
+    {
+        $this->initializeSections();
         $this->handseed = "210";
-        $this->setUpHeader($this->cad);
+        $this->setUpHeader();
+        $this->setUpTables();
+        $this->setUpObjects();
+        $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", "1F"));
+    }
 
-        // One time stuff for all pages:
+    private function setUpObjects()
+    {
+        $this->objects->addBlock($this->createNamedObjectDictionary());
+        $this->objects->addBlock($this->createOtherDictionaries());
+    }
 
+    private function setUpTables()
+    {
         $vportTable = $this->createTable("VPORT", 8, 1);
         $vportTable->addBlock($this->getVport());
         $ltypeTable = $this->createTable("LTYPE", 5, 1);
@@ -58,90 +162,24 @@ class DxfConverter
         $this->tables->addBlock($ucsTable);
         $this->tables->addBlock($appidTable);
         $this->tables->addBlock($dimstyleTable);
-
-        $this->objects->addBlock($this->createNamedObjectDictionary());
-        $this->objects->addBlock($this->createOtherDictionaries());
-        $layoutDictionary = $this->createLayoutDictionary();
-
-
-        //Add model space
-        $blockRecordTable = $this->createBlockRecordTable();
-        $blockRecordTable->addBlock($this->createBlockRecord("*Model_Space", "1F", 22));
-        $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", "1F"));
-
-        $layouts = new DxfBlock();
-
-        $pageNum = 0;
-        for ($pageNum = 0; $pageNum < count($this->cad->pages); $pageNum++){
-
-            $marginBottom = $this->cad->pages[$pageNum]->marginBottom;
-            $marginLeft = $this->cad->pages[$pageNum]->marginLeft;
-            $marginRight = $this->cad->pages[$pageNum]->marginRight;
-            $marginTop = $this->cad->pages[$pageNum]->marginTop;
-            $name = $this->cad->pages[$pageNum]->name;
-            $xLength = $this->cad->pages[$pageNum]->xLength;
-            $yLength = $this->cad->pages[$pageNum]->yLength;
-            $blockRecordHandle = $this->getNewHandle();
-            $layoutHandle = $this->getNewHandle();
-
-            if ($pageNum == 0){
-                $id = "*Paper_Space";
-            } else {
-                $id = "*Paper_Space" . ($pageNum - 1);
-            }
-
-            //echo "ID = ". $id;
-
-            $blockRecordTable->addBlock($this->createBlockRecord($id, $blockRecordHandle, $layoutHandle));
-            $layoutBlock = $this->createLayoutBlock($id, $blockRecordHandle);
-            //$this->blocks->addBlock($this->createLayoutBlock($id, $blockRecordHandle));
-            $layoutDictionary->addBlock($this->createLayoutForDictionary($name, $layoutHandle));
-            $layouts->addBlock($this->createLayoutObject(
-                    $blockRecordHandle,
-                    $layoutHandle,
-                    $marginLeft,
-                    $marginBottom,
-                    $marginRight,
-                    $marginTop,
-                    $xLength,
-                    $yLength,
-                    $name,
-                    $pageNum));
-
-            if (!empty($this->cad->pages[$pageNum]->content)){
-                foreach ($this->cad->pages[$pageNum]->content as $object){
-
-                    $entityHandle = $this->getNewHandle();
-
-                    if (is_a($object, "DxfCreator\File")){
-                        $definitionHandle = $this->getNewHandle();
-                        $this->objects->addBlock($this->getDefinition($object, $entityHandle, $definitionHandle));
-                    } else {
-                        $definitionHandle = null;
-                    }
-
-                    if ($pageNum == 0){
-                        $this->entities->addBlock($this->getShape($object, $entityHandle, $blockRecordHandle, $definitionHandle));
-                    } else {
-                        $layoutBlock->addBlock($this->getShape($object, $entityHandle, $blockRecordHandle, $definitionHandle));
-                    }
-
-                }
-            }
-
-            $this->blocks->addBlock($layoutBlock);
-        }
-
-        $layoutDictionary->addBlock($this->createLayoutForDictionary("Model", 22));
-        $layouts->addBlock($this->createModelObject());
-
-        $this->tables->addBlock($blockRecordTable);
-        $this->objects->addBlock($layoutDictionary);
-        $this->objects->addBlock($layouts);
     }
 
+    private function initializeSections()
+    {
+        $this->header = $this->makeSection("HEADER");
+        $this->tables = $this->makeSection("TABLES");
+        $this->blocks = $this->makeSection("BLOCKS");
+        $this->entities = $this->makeSection("ENTITIES");
+        $this->objects = $this->makeSection("OBJECTS");
+    }
 
-    public function getDefinition(File $file, $entityHandle, $definitionHandle)
+    private function getNewHandle()
+    {
+        $this->handseed = strtoupper(dechex(hexdec($this->handseed) + 1));
+        return $this->handseed;
+    }
+
+    private function getDefinition(File $file, $entityHandle, $definitionHandle)
     {
         $definition = new DxfBlock();
 
@@ -153,12 +191,15 @@ class DxfConverter
             case "PDFUNDERLAY":
                 $definition->addBlock($this->getPdfDefinition($file, $entityHandle, $definitionHandle));
                 break;
+            default:
+                throw new Exception('Class File. Type: ' . $file->type . ' not recognized.');
+                break;
         }
 
         return $definition;
     }
 
-    public function getImageDefinition(Image $image, $definitionHandle)
+    private function getImageDefinition(Image $image, $definitionHandle)
     {
         $imageDefinition = new DxfBlock();
         $imageDefinition->add(0, "IMAGEDEF");
@@ -174,7 +215,7 @@ class DxfConverter
         return $imageDefinition;
     }
 
-    public function getPdfDefinition(Pdf $pdf, $entityHandle, $definitionHandle)
+    private function getPdfDefinition(Pdf $pdf, $entityHandle, $definitionHandle)
     {
         $pdfDefinition = new DxfBlock();
         $pdfDefinition->add(0, "PDFDEFINITION");
@@ -189,7 +230,7 @@ class DxfConverter
         return $pdfDefinition;
     }
 
-    public function getPdfUnderlay(Pdf $pdf, $defintionHandle)
+    private function getPdfUnderlay(Pdf $pdf, $defintionHandle)
     {
         $pdfEntity = new DxfBlock();
         $pdfEntity->add(100, "AcDbUnderlayReference");
@@ -206,7 +247,7 @@ class DxfConverter
         return $pdfEntity;
     }
 
-    public function getImage(Image $image, $definitionHandle)
+    private function getImage(Image $image, $definitionHandle)
     {
         $dxfImage = new DxfBlock();
         $dxfImage->add(100, "AcDbRasterImage");
@@ -243,7 +284,7 @@ class DxfConverter
         return $dxfImage;
     }
 
-    public function getShape(Shape $shape, $entityHandle, $layoutBlockRecordHandle, $definitionHandle)
+    private function getShape(Shape $shape, $entityHandle, $layoutBlockRecordHandle, $definitionHandle)
     {
         $dxfShape = new DxfBlock();
         $dxfShape->add(0, $shape->type);
@@ -272,12 +313,15 @@ class DxfConverter
             case "PDFUNDERLAY":
                 $dxfShape->addBlock($this->getPdfUnderlay($shape, $definitionHandle));
                 break;
+            default:
+                throw new Exception('Class Shape. Type: ' . $shape->type . ' not recognized.');
+                break;
         }
 
         return $dxfShape;
     }
 
-    public function getMText(MText $mText)
+    private function getMText(MText $mText)
     {
         $dxfMText = new DxfBlock();
         $dxfMText->add(100, "AcDbMText");
@@ -296,7 +340,7 @@ class DxfConverter
         return $dxfMText;
     }
 
-    public function formatMTextString(MText $mText)
+    private function formatMTextString(MText $mText)
     {
         $bold = $mText->bold? 1 : 0;
         $italic = $mText->italic? 1 : 0;
@@ -320,7 +364,7 @@ class DxfConverter
         return $dxfString;
     }
 
-    public function getPolygon(Polygon $polygon)
+    private function getPolygon(Polygon $polygon)
     {
         $dxfPolygon = new DxfBlock();
         $dxfPolygon->add(100, "AcDbPolyline");
@@ -336,7 +380,7 @@ class DxfConverter
         return $dxfPolygon;
     }
 
-    public function createDictionary($handle, $pointer)
+    private function createDictionary($handle, $pointer)
     {
         $dictionary = new DxfBlock();
         $dictionary->add(0, "DICTIONARY");
@@ -348,7 +392,7 @@ class DxfConverter
         return $dictionary;
     }
 
-    public function createOtherDictionaries()
+    private function createOtherDictionaries()
     {
         $dictionaries = new DxfBlock();
         $dictionaries->addBlock($this->createDictionary("15D", "1F"));
@@ -369,7 +413,7 @@ class DxfConverter
         return $dictionaries;
     }
 
-    public function getDimstyleTable()
+    private function getDimstyleTable()
     {
         $preBody = new DxfBlock();
         $preBody->add(0, "TABLE");
@@ -399,7 +443,7 @@ class DxfConverter
         return $dimstyleTable;
     }
 
-    public function getAppid($name, $handle)
+    private function getAppid($name, $handle)
     {
         $appid = new DxfBlock();
         $appid->add(0, "APPID");
@@ -412,7 +456,7 @@ class DxfConverter
         return $appid;
     }
 
-    public function getLayerTable()
+    private function getLayerTable()
     {
         $preBody = new DxfBlock();
         $preBody->add(0, "TABLE");
@@ -450,7 +494,7 @@ class DxfConverter
     }
 
 
-    public function getLtype($name, $description, $handle)
+    private function getLtype($name, $description, $handle)
     {
         $ltype = new DxfBlock();
         $ltype->add(0, "LTYPE");
@@ -467,7 +511,7 @@ class DxfConverter
         return $ltype;
     }
 
-    public function getVport()
+    private function getVport()
     {
         $vport = new DxfBlock();
         $vport->add(0, "VPORT");
@@ -537,143 +581,7 @@ class DxfConverter
         return $vport;
     }
 
-    public function save($filePath)
-    {
-        // Add handseed to header
-
-        $this->header->add(9, '$HANDSEED');
-        $this->header->add(5, $this->getNewHandle());
-
-        $file = new DxfBlock();
-        $file->addBlock($this->header);
-        $file->addBlock($this->tables);
-        $file->addBlock($this->blocks);
-        $file->addBlock($this->entities);
-        $file->addBlock($this->objects);
-        $file->add(0, "EOF");
-
-        //echo $file->toString();
-
-        file_put_contents($filePath, $file->toString());
-
-        // BLOCK_RECORD TABLE code 70 = #pages - 1
-        // one block record for each page, and one for the model space
-        // code 5 = handle (ex. 1EB)
-        // code 330 = soft pointer (ex. 1)
-        // 100 = AcDbSymbolTableRecord
-        // 100 = AcDbBlockTableRecord
-        // code 2 = *Paper_Space# (where # is the page number - 2)
-        // code 340, pointer to layout object (ex. 1EC)
-        // 70 = number of inserts (ex. 0)
-        // 280 = block explodability (ex. 1)
-        // 281 = block scalability (ex. 0)
-
-        // Add a BLOCK in BLOCKS section:
-        // 5 = handle, (ex. 1ED)
-        // 330 = soft pointer id, same as handle in block record (ex. 1EB)
-        // 100 = AcDbEntity
-        // 8 = Layer name
-        // 100 = AcDbBlockBegin
-        // 2 = same as 2 in block record (ex *Paper_Space1)
-        // 70 = flag indicating things, set to 0
-        // 10,20,30 = basepoints in x,y,z
-        // 3 = block name again (ex *Paper_Space1)
-        // 1 = xref path name, who knows, leave blank
-
-        // 0 = ENDBLK
-        // 5 = handle (ex. 1EE)
-        // 330 = soft-pointer, same as in block/block_record (ex. 1EB)
-        // 100 = AcDbEntity
-        // 8 = leyer name
-        // 100 = AcDbBlockEnd
-
-        // In Objects Table
-        // Add all pages to one dictionary:
-        // 0 = DICTIONARY
-        // 5 = handle, (ex. 1A)
-        // 102 = {ACAD_REACTORS
-        // 330 = C , soft pointer to owner dictionary
-        // 102 = }
-        // 330 = C , soft pointer to owner object
-        // 100 = AcDbDictionary
-        // 281 = duplicate record options, set to 1
-        // 3 = actual name of page (ex. S0.0 Cover Sheet)
-        // 350 = soft owner id, same as 340 in block record (ex 1EC)
-        // REPEAT 3 and 350 for each page, and for ModelSpace
-
-        // Add a layout object for each page
-        // 0 = LAYOUT
-        // 5 = handle, same as 340 in block record and 350 in dictionary (ex 1EC)
-        // 102 = {ACAD_REACTORS
-        // 330 = handle of dictionary (ex. 1A)
-        // 102 = }
-        // 330 = handle of dictionary (ex. 1A)
-        // 100 = AcDbPlotSettings
-        // List of plot settings:
-        // 1 = page setup name, leave blank
-        // 2 = name of printer, (ex. Kyocera TASKalfa 3050ci XPS)
-        // 4 = paper size, not sure how to format it
-        // 6 = plot view name, not sure what it means
-        // 40 = left margin size (mm)
-        // 41 = bottom margin size
-        // 42 = right margin size
-        // 43 = top margin size
-        // 44 = physical paper width (mm)
-        // 45 = physical paper height
-        // 46 = x value of origin offset (mm)
-        // 47 = y value of origin offset (mm)
-        // 48 = x value of lower left plot window corner
-        // 49 = y value of upper right plot window corner
-        // 140 = x value of lower left plot window corner
-        // 141 = y value of upper right plot window corner
-        // 142 = Custom print scale: real world units
-        // 143 = Custom printscale: drawing units
-        // 70 = plot layout flag (ex. 688, no idea what it means)
-        // 72 = plot paper units (ex. 0 , for inches)
-        // 73 = plot rotation (ex. 0)
-        // 74 = plot type ie. what portion to display (currently 5, but maybe play around with this)
-        // 7 = current style sheet (leave blank)
-        // 75 = standard scale type (ex 16 , aka 1:1)
-        // 147 = float that represents scale again (ex. 1.0)
-        // 76 = ShadePlot mode (ex. 0)
-        // 77 = ShadePlot resolution level (ex. 2 , normal)
-        // 78 = ShadePlot custom DPI (ex. 300)
-        // 148 = Paper image origin, x value (ex. 0.0)
-        // 149 = Paper image origin, y value (ex. 0.0)
-
-        // 100 = AcDbLayout
-        // 1 = Layout name (ex. S0.0 Cover Sheet)
-        // 70 = some sort of flag (ex. 1)
-        // 71 = tab order in autocad, after model space (ex. 3)
-        // 10 = minimum limits of layout, x value (ex. 0.0)
-        // 20 = min limits of layout, y value (ex 0.0)
-        // 11 = max limits, x value (ex. 9.0)
-        // 21 = max limits, y value (ex. 12.0)
-        // 12 = insertion base point, x value (ex. 0.0)
-        // 22 = insertion base point, y value (ex. 0.0)
-        // 32 = insertion base point, z value (ex. 0.0)
-        // 14 = min extents for layout, x value (ex. 0.0)
-        // 24 = min extents, y valuie (ex. 0.0)
-        // 34 = min extents, z value (ex. 0.0)
-        // 15 = max extents, x value (ex. 0.0)
-        // 25 = max extents, y value (ex. 0.0)
-        // 35 = max extents, z value (ex. 0.0)
-        // 146 = elevation (ex. 0.0)
-        // 13 = UCS origin, x value (ex. 0.0)
-        // 23 = UCS origin, y value (ex. 0.0)
-        // 33 = UCS origin, z value (ex. 0.0)
-        // 16 = UCS x-axis, x value (ex 1.0)
-        // 26 = UCS x-axis, y value (ex 0.0)
-        // 36 = UCS x-axis, z value (ex. 0.0)
-        // 17 = UCS y-axis, x value (ex. 0.0)
-        // 27 = UCS y-axis, y value (ex 1.0)
-        // 37 = UCS y-axis, z value (ex. 0.0)
-        // 76 = Orthographic type of UCS (ex. 0 , non-orthographic)
-        // 330 = handle to layout's paper space block table record (ex. 1EB)
-    }
-
-
-    public function createModelObject()
+    private function createModelObject()
     {
         $layout = new DxfBlock();
         $layout->add(0, "LAYOUT");
@@ -746,7 +654,7 @@ class DxfConverter
         return $layout;
     }
 
-    public function createLayoutObject($blockRecordHandle, $layoutHandle, $marginL, $marginB, $marginR, $marginT,
+    private function createLayoutObject($blockRecordHandle, $layoutHandle, $marginL, $marginB, $marginR, $marginT,
             $width, $height, $name, $pageNum)
     {
         $layout = new DxfBlock();
@@ -819,7 +727,7 @@ class DxfConverter
         return $layout;
     }
 
-    public function createLayoutForDictionary($name, $layoutHandle)
+    private function createLayoutForDictionary($name, $layoutHandle)
     {
         $layout = new DxfBlock();
         $layout->add(3, $name);
@@ -827,7 +735,7 @@ class DxfConverter
         return $layout;
     }
 
-    public function createLayoutBlock($name, $blockRecordHandle)
+    private function createLayoutBlock($name, $blockRecordHandle)
     {
         $preBlock = new DxfBlock();
         $preBlock->add(0, "BLOCK");
@@ -860,7 +768,7 @@ class DxfConverter
         return new DxfContainer($preBlock, $postBlock);
     }
 
-    public function createBlockRecord($name, $blockRecordHandle, $layoutHandle)
+    private function createBlockRecord($name, $blockRecordHandle, $layoutHandle)
     {
         $record = new DxfBlock();
         $record->add(0, "BLOCK_RECORD");
@@ -883,7 +791,7 @@ class DxfConverter
         return $record;
     }
 
-    public function createNamedObjectDictionary()
+    private function createNamedObjectDictionary()
     {
         $dictionary = new DxfBlock();
         $dictionary->add(0, "DICTIONARY");
@@ -899,7 +807,7 @@ class DxfConverter
         return $dictionary;
     }
 
-    public function createLayoutDictionary()
+    private function createLayoutDictionary()
     {
         $preBody = new DxfBlock();
         $preBody->add(0, "DICTIONARY");
@@ -914,7 +822,7 @@ class DxfConverter
         return new DxfContainer($preBody);
     }
 
-    public function createTable($title, $handle, $maxEntries)
+    private function createTable($title, $handle, $maxEntries)
     {
         $preBody = new DxfBlock();
         $preBody->add(0, "TABLE");
@@ -928,13 +836,12 @@ class DxfConverter
         return new DxfContainer($preBody, $postBody);
     }
 
-    public function createBlockRecordTable()
+    private function createBlockRecordTable()
     {
-        //$maxPages = count($this->cad->pages) < 2 ? 0 : count($this->cad->pages) - 2;
         return $this->createTable("BLOCK_RECORD", 1, count($this->cad->pages));
     }
 
-    public function makeSection($title)
+    private function makeSection($title)
     {
         $pre = new DxfBlock();
         $pre->add(0, "SECTION");
@@ -944,13 +851,13 @@ class DxfConverter
         return new DxfContainer($pre, $post);
     }
 
-    public function setUpHeader(CadMaker $cad)
+    private function setUpHeader()
     {
-        $variables = $this->setVariables($cad);
+        $variables = $this->setVariables();
         $this->header->addBlock($this->variablesToDxf($variables));
     }
 
-    public function setVariables(CadMaker $cad)
+    private function setVariables()
     {
         // For now just hardcoded
         $variables = [
@@ -969,7 +876,7 @@ class DxfConverter
         return $variables;
     }
 
-    public function variablesToDxf($variables)
+    private function variablesToDxf($variables)
     {
         $body = new DxfBlock();
         foreach ($variables as $variable => $content){
@@ -980,5 +887,4 @@ class DxfConverter
         }
         return $body;
     }
-
 }
