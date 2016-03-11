@@ -10,16 +10,15 @@ class DxfConverter
     private $objects;
     private $handseed;
 
-    public function __construct(CadMaker $newCad)
+    public function __construct(CadMaker $cad)
     {
-        $this->cad = $newCad;
+        $this->cad = $cad;
     }
 
     public function save($filePath)
     {
         $this->setUp();
         $this->extractContent();
-        $this->header->addBlock($this->handseedVariable());
         $this->writeToFile($filePath);
     }
 
@@ -61,6 +60,7 @@ class DxfConverter
         $this->tables->addBlock($blockRecordTable);
         $this->objects->addBlock($layoutDictionary);
         $this->objects->addBlock($layouts);
+        $this->header->addBlock($this->handseedVariable());
     }
 
     private function extractPageContent($pageNum, &$blockRecordTable, &$layoutDictionary, &$layouts)
