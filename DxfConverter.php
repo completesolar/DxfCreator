@@ -52,7 +52,6 @@ class DxfConverter
         $layouts = new DxfBlock();
 
         for ($pageNum = 0; $pageNum < count($this->cad->pages); $pageNum++){
-
             $this->extractPageContent($pageNum, $blockRecordTable, $layoutDictionary, $layouts);
         }
 
