@@ -1,14 +1,13 @@
 <?php
 
-namespace DxfCreator\tests;
+namespace DxfCreator\Examples;
 
 use DxfCreator\DxfConverter;
 use DxfCreator\CadMaker;
 
-class DxfConverterTest extends \PHPUnit_Framework_TestCase
+class ExampleGenerator
 {
-
-    public function testTextOrientations()
+    public function exampleTextOrientations($filepath = "Examples/exampleTextOrientations.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
@@ -32,10 +31,10 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->drawText($p1, "BR", 9, 4, 0.5, null, ["origin" => "bottom right"]);
         $cad->drawRectangle($p1, 9, 4, 11, 2);
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testTextOrientations.dxf');
+        $dxf->save($filepath);
     }
 
-    public function testTextOnMultiplePages()
+    public function exampleTextOnMultiplePages($filepath = "Examples/exampleTextOnMultiplePages.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
@@ -49,15 +48,10 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->drawText($p4, "This is the text on Page 4. I hope it does its job!", 1, 7, 1, 14);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testTextOnMultiplePages.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testTextOnMultiplePages.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testTextOnMultiplePages.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
-    public function testTextStyles()
+    public function exampleTextStyles($filepath ="Examples/exampleTextStyles.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
@@ -74,49 +68,33 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
                 . 'codes', 0.5, 4, 0.15);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testTextStyles.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testTextStyles.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testTextStyles.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
-
+        $dxf->save($filepath);
     }
 
-    public function testDrawTextWithWidthLimit()
+    public function exampleDrawTextWithWidthLimit($filepath = "Examples/exampleDrawTextWithWidthLimit.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "This is text that has a limit on the width of the paragraph.", 2, 5, 0.3, 3);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testDrawTextWithWidthLimit.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testDrawTextWithWidthLimit.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testDrawTextWithWidthLimit.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
-    public function testDrawText()
+    public function exampleDrawText($filepath = "Examples/exampleDrawText.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "This is text!", 2, 3, 0.2);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testDrawText.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testDrawText.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testDrawText.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
     /*
      * Note that AutoCAD 'white' (index #7) prints black if on a white background
      */
-    public function testRectangleOptions()
+    public function exampleRectangleOptions($filepath = "Examples/exampleRectangleOptions.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
@@ -131,15 +109,10 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->drawRectangle($p1, 8, 8, 10, 10, ["lineColor" => 7, "lineWeight" => 2.5]);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testRectangleOptions.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testRectangleOptions.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testRectangleOptions.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
-    public function testDrawManyRectanglesOnManyPages()
+    public function exampleDrawManyRectanglesOnManyPages($filepath = "Examples/exampleDrawManyRectanglesOnManyPages.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
@@ -174,63 +147,20 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->drawRectangle($p6, 1, 14, 3, 10.7);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testDrawManyRectanglesOnManyPages.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testDrawManyRectanglesOnManyPages.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testDrawManyRectanglesOnManyPages.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
-    public function testDrawRectangle()
+    public function exampleDrawRectangle($filepath = "Examples/exampleDrawRectangle.dxf")
     {
         $cad = new CadMaker();
         $p1 = $cad->addPage("Page 1");
         $cad->drawRectangle($p1, 0, 0, 3, 3);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testDrawRectangle.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testDrawRectangle.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testDrawRectangle.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
-    /*
-     * Generates a semi-valid AutoCad file (opens, but layout does not work)
-     */
-    public function testOneBlankPage()
-    {
-        $cad = new CadMaker();
-        $cad->addPage("Page 1");
-
-        $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testOneBlankPage.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testOneBlankPage.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testOneBlankPage.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
-    }
-
-    /*
-     * This generates an invalid AutoCad file
-     */
-    public function testNoPages()
-    {
-        $cad = new CadMaker();
-
-        $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testNoPages.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testNoPages.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testNoPages.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
-    }
-
-    public function testFourValidPages()
+    public function exampleFourPages($filepath = "Examples/exampleFourPages.dxf")
     {
         $cad = new CadMaker();
         $cad->addPage("Page 1");
@@ -239,15 +169,10 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->addPage("Page 4");
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testFourValidPages.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testFourValidPages.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testFourValidPages.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
+        $dxf->save($filepath);
     }
 
-    public function testPageWithOptions()
+    public function examplePageWithOptions($filepath = "Examples/examplePageWithOptions.dxf")
     {
         $cad = new CadMaker();
         $options = [
@@ -261,16 +186,10 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->addPage("A well-defined page", $options);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testPageWithOptions.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testPageWithOptions.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testPageWithOptions.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
-
+        $dxf->save($filepath);
     }
 
-    public function testMultiplePagesWithDifferentOptions()
+    public function exampleMultiplePagesWithDifferentOptions($filepath = "Examples/exampleMultiplePagesWithDifferentOptions.dxf")
     {
         $cad = new CadMaker();
         $options1 = [
@@ -305,13 +224,7 @@ class DxfConverterTest extends \PHPUnit_Framework_TestCase
         $cad->addPage("The third page", $options3);
 
         $dxf = new DxfConverter($cad);
-        $dxf->save('tests/temp/testMultiplePagesWithDifferentOptions.dxf');
-
-        $fileGenerated = explode("\r\n", file_get_contents('tests/temp/testMultiplePagesWithDifferentOptions.dxf'));
-        $fileExpected = explode("\r\n", file_get_contents('tests/dxf file examples/testMultiplePagesWithDifferentOptions.dxf'));
-
-        $this->assertEquals($fileExpected, $fileGenerated);
-
+        $dxf->save($filepath);
     }
 
 
