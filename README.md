@@ -6,9 +6,9 @@ This package is NOT designed to work with the Model Space, or to create complex 
 
 ## Basic Usage:
 
-Build your design with the CadMaker class:
+Build your design with the Drawing class:
 ```
-$design = new CadMaker();
+$design = new Drawing();
 $page1 = $design->addPage("Page 1");
 $design->drawRectangle($page1, 0.0, 0.0, 3.0, 4.0);
 ```

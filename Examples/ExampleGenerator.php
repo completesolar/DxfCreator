@@ -3,13 +3,13 @@
 namespace DxfCreator\Examples;
 
 use DxfCreator\DxfConverter;
-use DxfCreator\CadMaker;
+use DxfCreator\Drawing;
 
 class ExampleGenerator
 {
     public function exampleTextOrientations($filepath = "Examples/exampleTextOrientations.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "The squares are references. The Top left corner of each square is the position for each text object.", 1, 10.75, 0.3);
         $cad->drawText($p1, "TL", 1, 10, 0.5, null, ["origin" => "top left"]);
@@ -36,7 +36,7 @@ class ExampleGenerator
 
     public function exampleTextOnMultiplePages($filepath = "Examples/exampleTextOnMultiplePages.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $p2 = $cad->addPage("Page 2");
         $p3 = $cad->addPage("Page 3");
@@ -53,7 +53,7 @@ class ExampleGenerator
 
     public function exampleTextStyles($filepath ="Examples/exampleTextStyles.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "Bold", 1, 10, 0.3, null, ["bold" => true]);
         $cad->drawText($p1, "Italic", 2, 9, 0.3, null, ["italic" => true]);
@@ -73,7 +73,7 @@ class ExampleGenerator
 
     public function exampleDrawTextWithWidthLimit($filepath = "Examples/exampleDrawTextWithWidthLimit.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "This is text that has a limit on the width of the paragraph.", 2, 5, 0.3, 3);
 
@@ -83,7 +83,7 @@ class ExampleGenerator
 
     public function exampleDrawText($filepath = "Examples/exampleDrawText.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $cad->drawText($p1, "This is text!", 2, 3, 0.2);
 
@@ -96,7 +96,7 @@ class ExampleGenerator
      */
     public function exampleRectangleOptions($filepath = "Examples/exampleRectangleOptions.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
 
         $cad->drawRectangle($p1, 1, 1, 3, 3, ["lineWeight" => 0.1]);
@@ -114,7 +114,7 @@ class ExampleGenerator
 
     public function exampleDrawManyRectanglesOnManyPages($filepath = "Examples/exampleDrawManyRectanglesOnManyPages.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $p2 = $cad->addPage("Page 2");
         $p3 = $cad->addPage("Page 3");
@@ -152,7 +152,7 @@ class ExampleGenerator
 
     public function exampleDrawRectangle($filepath = "Examples/exampleDrawRectangle.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $p1 = $cad->addPage("Page 1");
         $cad->drawRectangle($p1, 0, 0, 3, 3);
 
@@ -162,7 +162,7 @@ class ExampleGenerator
 
     public function exampleFourPages($filepath = "Examples/exampleFourPages.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $cad->addPage("Page 1");
         $cad->addPage("Page 2");
         $cad->addPage("Page 3");
@@ -174,7 +174,7 @@ class ExampleGenerator
 
     public function examplePageWithOptions($filepath = "Examples/examplePageWithOptions.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $options = [
                 "xLength" => 26.8,
                 "yLength" => 7.5,
@@ -191,7 +191,7 @@ class ExampleGenerator
 
     public function exampleMultiplePagesWithDifferentOptions($filepath = "Examples/exampleMultiplePagesWithDifferentOptions.dxf")
     {
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $options1 = [
                 "xLength" => 26.8,
                 "yLength" => 7.5,

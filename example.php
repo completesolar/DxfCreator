@@ -3,7 +3,7 @@ require_once __DIR__.'/vendor/autoload.php';
 
 // Example of how to use this package
 
-$myDocument = new CadMaker();
+$myDocument = new Drawing();
 
 $pageOptions = [
         "xLength" => 11.0,

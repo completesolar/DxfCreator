@@ -2,15 +2,15 @@
 
 namespace DxfCreator\tests;
 
-use DxfCreator\CadMaker;
+use DxfCreator\Drawing;
 use DxfCreator\Page;
 
-class CadMakerTest extends \PHPUnit_Framework_TestCase
+class DrawingTest extends \PHPUnit_Framework_TestCase
 {
     public function testAddPage(){
         $pageExpected = new Page("Page 1");
 
-        $cad = new CadMaker();
+        $cad = new Drawing();
         $pageGenerated = $cad->pages[$cad->addPage("Page 1")];
         $this->assertEquals($pageExpected, $pageGenerated);
     }

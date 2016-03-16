@@ -1,7 +1,7 @@
-<?php namespace DxfCreator;
+<?php namespace DxfCreator\Dxf;
 class DxfBlock
 {
-    private $body;
+    public $body;
 
     public function __construct(array $newBody = [])
     {
@@ -37,5 +37,20 @@ class DxfBlock
             }
         }
         return $content;
+    }
+
+    public function addArray($lines, $alternating = false)
+    {
+        //var_export($lines);
+
+        if ($alternating){
+            for ($i = 0; $i < count($lines); $i = $i+2){
+                $this->body[] = [trim($lines[$i]), $lines[$i+1]];
+            }
+        } else {
+            foreach ($lines as $line){
+                $this->add(trim($line[0]), $line[1]);
+            }
+        }
     }
 }
