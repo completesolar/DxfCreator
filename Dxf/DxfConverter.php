@@ -480,12 +480,33 @@ class DxfConverter
             case "INSERT":
                 $dxfEntity->addBlock($this->getInsert($entity));
                 break;
+            case "ELLIPSE":
+                $dxfEntity->addBlock($this->getEllipse($entity));
+                break;
             default:
                 throw new \Exception('Class Entity. Type: ' . $entity->type . ' not recognized.');
                 break;
         }
 
         return $dxfEntity;
+    }
+
+    private function getEllipse(Ellipse $ellipse)
+    {
+
+        // This needs major redoing. Right now only works for circles.
+
+        $dxfEllipse = new DxfBlock();
+        $dxfEllipse->add(100, "AcDbEllipse");
+        $dxfEllipse->add(10, $ellipse->center[0]);
+        $dxfEllipse->add(20, $ellipse->center[1]);
+        $dxfEllipse->add(30, "0.0");
+        $dxfEllipse->add(11, $ellipse->xRadius);
+        $dxfEllipse->add(21, "0.0");
+        $dxfEllipse->add(31, "0.0");
+        $dxfEllipse->add(40, "1.0");
+
+        return $dxfEllipse;
     }
 
     private function getInsert(Block $block)
