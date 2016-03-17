@@ -1,9 +1,7 @@
 <?php
-namespace DxfCreator;
+namespace DxfCreator\Drawing;
 
-use DxfCreator\Shape;
-
-class MText extends Shape
+class MText extends Drawable
 {
     public $text;
     public $font;
@@ -12,13 +10,13 @@ class MText extends Shape
     public $italic;
     public $underline;
     public $width;
+    public $alignment;
 
-    public function __construct($text, $xPosition, $yPosition, $lineHeight, $width = null, $textOptions = [])
+    public function __construct($text, $x, $y, $lineHeight, $width = null, $textOptions = [])
     {
         $this->type = "MTEXT";
         $this->text = $text;
-        $this->xPosition = $xPosition;
-        $this->yPosition = $yPosition;
+        $this->position = [$x, $y];
         $this->lineHeight = $lineHeight;
         $this->width = empty($width)? 50.0 : $width;
         $this->setOptions($textOptions);
@@ -30,7 +28,7 @@ class MText extends Shape
         $options = array_replace($this->getTextDefaults(), $optionsGiven);
 
         $this->font = $options["font"];
-        $this->origin = $this->setOrigin($options["origin"]);
+        $this->alignment = $this->setAlignment($options["alignment"]);
         $this->bold = $options["bold"];
         $this->italic = $options["italic"];
         $this->underline = $options["underline"];
@@ -41,11 +39,31 @@ class MText extends Shape
     {
         return array(
                 "font" => "Arial",
-                "origin" => "top left",
+                "alignment" => "top left",
                 "bold" => false,
                 "italic" => false,
                 "underline" => false,
         );
+    }
+
+    public function setAlignment($alignment)
+    {
+        $alignments = [
+                "top left", "top center", "top right",
+                "middle left", "middle center", "middle right",
+                "bottom left", "bottom center", "bottom right"
+        ];
+
+        $index = array_search(strtolower($alignment), $alignments);
+        if ($index !== false){
+            return $index + 1;
+        }
+
+        if (is_int($alignment) && $alignment >= 1 && $alignment <= count($alignments)){
+            return $alignment;
+        }
+
+        return 1;
     }
 
 }

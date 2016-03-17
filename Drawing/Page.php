@@ -1,8 +1,7 @@
-<?php namespace DxfCreator;
+<?php namespace DxfCreator\Drawing;
 
 class Page
 {
-
     public $content;
     public $marginBottom;
     public $marginLeft;

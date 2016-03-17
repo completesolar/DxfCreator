@@ -1,21 +1,13 @@
 <?php
-namespace DxfCreator;
+namespace DxfCreator\Drawing;
 
-class Shape
+abstract class Drawable extends Entity
 {
     public $fillColor;
     public $fillType;
-    public $origin;
     public $lineColor;
     public $lineType;
     public $lineWeight;
-    public $angle;
-    public $rotationPoint;
-
-    public $xPosition;
-    public $yPosition;
-
-    public $type;
 
     public function setOptions($optionsGiven)
     {
@@ -23,7 +15,6 @@ class Shape
 
         $this->fillColor = $this->setColor($options["fillColor"]);
         $this->fillType = $options["fillType"];
-        $this->origin = $this->setOrigin($options["origin"]);
         $this->lineColor = $this->setColor($options["lineColor"]);
         $this->lineWeight = $this->setLineWeight($options["lineWeight"]);
         $this->lineType = $options["lineType"];
@@ -37,7 +28,7 @@ class Shape
             return $rotationPoint;
         }
 
-        return [0,0];
+        return $this->center;
     }
 
     public function setColor($color)
@@ -85,38 +76,16 @@ class Shape
         return $lineWeights[count($lineWeights) - 1];
     }
 
-    public function setOrigin($origin)
-    {
-        $orientations = [
-                "top left", "top center", "top right",
-                "middle left", "middle center", "middle right",
-                "bottom left", "bottom center", "bottom right"
-        ];
-
-        $index = array_search(strtolower($origin), $orientations);
-        if ($index !== false){
-            return $index + 1;
-        }
-
-        if (is_int($origin) && $origin >= 1 && $origin <= count($orientations)){
-            return $origin;
-        }
-
-        return 1;
-    }
-
     public function getDefaults()
     {
         return array(
                 "fillColor" => "green",
                 "fillType" => "solid",
-                "origin" => "bottom left",
                 "lineColor" => "0",
                 "lineWeight" => 0.13,
                 "lineType" => "solid",
                 "angle" => 0,
-                "rotationPoint" => [0,0],
+                "rotationPoint" => $this->center,
         );
     }
-
 }

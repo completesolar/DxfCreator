@@ -1,4 +1,4 @@
-<?php namespace DxfCreator;
+<?php namespace DxfCreator\Dxf;
 class DxfContainer extends DxfBlock
 {
     private $preBody;
