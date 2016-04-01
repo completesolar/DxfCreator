@@ -1,9 +1,10 @@
 <?php
 namespace DxfCreator\Drawing;
 
-class BlockDefinitionFile extends File
+class BlockDefinitionFile
 {
     public $names;
+    public $filepath;
 
     public function __construct($filepath, $names = [])
     {

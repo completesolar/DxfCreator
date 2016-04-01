@@ -8,7 +8,7 @@ class Drawing implements DrawingInterface
     public function __construct()
     {
         $this->pages = array();
-        $this->blockDefinitions = array();
+        $this->blockDefinitionFiles = array();
     }
 
     public function drawRectangle($page, $x1, $y1, $x2, $y2, $options = [])
