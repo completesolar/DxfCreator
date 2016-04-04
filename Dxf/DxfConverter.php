@@ -24,6 +24,7 @@ class DxfConverter
     private $blockDefinitions;
     private $blockRecords;
     private $imageDictionary;
+    private $handles;
 
     public function __construct(Drawing $drawing)
     {
@@ -187,7 +188,7 @@ class DxfConverter
     private function extractContent()
     {
         $blockRecordTable = $this->createBlockRecordTable();
-        $blockRecordTable->addBlock($this->createBlockRecord("*Model_Space", "1F", 22));
+        $blockRecordTable->addBlock($this->createBlockRecord("*Model_Space", $this->handles["modelBlockRecord"], $this->handles["modelLayout"]));
         $layouts = new DxfBlock();
 
         for ($pageNum = 0; $pageNum < count($this->drawing->pages); $pageNum++){
@@ -269,14 +270,20 @@ class DxfConverter
 
     private function setUp()
     {
+        $this->handseed = "100";
+        $this->handles = [];
+        $this->handles["modelBlock"] = $this->getNewHandle();
+        $this->handles["modelBlockRecord"] = $this->getNewHandle();
+        $this->handles["modelDictionary"] = $this->getNewHandle();
+        $this->handles["modelLayout"] = $this->getNewHandle();
+        $this->handles["acdbPlaceHolder"] = $this->getNewHandle();
         $this->initializeSections();
         $this->blockDefinitions = [];
         $this->blockRecords = [];
-        $this->handseed = "210";
         $this->setUpHeader();
         $this->setUpTables();
         $this->setUpObjects();
-        $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", "1F"));
+        $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", $this->handles["modelBlockRecord"]));
         $this->setBlockDefinitions();
 
         foreach ($this->blockDefinitions as $definition){
@@ -287,6 +294,13 @@ class DxfConverter
 
     private function setUpObjects()
     {
+        $this->handles["namedObjectDictionary"] = $this->getNewHandle();
+        $this->handles["ACAD_GROUP"] = $this->getNewHandle();
+        $this->handles["ACAD_LAYOUT"] = $this->getNewHandle();
+        $this->handles["ACAD_IMAGE_DICT"] = $this->getNewHandle();
+        $this->handles["ACAD_IMAGE_VARS"] = $this->getNewHandle();
+        $this->handles["ACAD_PLOTSTYLENAME"] = $this->getNewHandle();
+
         $this->objects->addBlock($this->createNamedObjectDictionary());
         $this->objects->addBlock($this->createOtherObjects());
         $this->imageDictionary = $this->createImageDictionary();
@@ -295,27 +309,31 @@ class DxfConverter
 
     private function setUpTables()
     {
-        $vportTable = $this->createTable("VPORT", 8, 1);
+        $this->handles["appidTable"] = $this->getNewHandle();
+        $this->handles["ltypeTable"] = $this->getNewHandle();
+        $this->handles["vportTable"] = $this->getNewHandle();
+
+        $vportTable = $this->createTable("VPORT", $this->getNewHandle(), 1);
         $vportTable->addBlock($this->getVport());
-        $ltypeTable = $this->createTable("LTYPE", 5, 1);
-        $ltypeTable->addBlock($this->getLtype("ByBlock", "", 14));
-        $ltypeTable->addBlock($this->getLtype("ByLayer", "", 15));
-        $ltypeTable->addBlock($this->getLtype("Continuous", "Solid line", 16));
+        $ltypeTable = $this->createTable("LTYPE", $this->handles["ltypeTable"], 1);
+        $ltypeTable->addBlock($this->getLtype("ByBlock", "", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ByLayer", "", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("Continuous", "Solid line", $this->getNewHandle()));
         $layerTable = $this->getLayerTable();
-        $styleTable = $this->createTable("STYLE", 3, 2);
-        $viewTable = $this->createTable("VIEW", 6, 2);
-        $ucsTable = $this->createTable("UCS", 7, 0);
-        $appidTable = $this->createTable("APPID", 9, 8);
-        $appidTable->addBlock($this->getAppid("ACAD", 12));
-        $appidTable->addBlock($this->getAppid("AcadAnnoPO", "DD"));
-        $appidTable->addBlock($this->getAppid("AcadAnnotative", "DE"));
-        $appidTable->addBlock($this->getAppid("ACAD_DSTYLE_DIMJAG", "DF"));
-        $appidTable->addBlock($this->getAppid("ACAD_DSTYLE_DIMTALN", "E0"));
-        $appidTable->addBlock($this->getAppid("ACAD_MLEADERVER", 107));
-        $appidTable->addBlock($this->getAppid("ACAD_NAV_VCDISPLAY", "1A6"));
-        $appidTable->addBlock($this->getAppid("ACAD_PSEXT", "1F6"));
-        $appidTable->addBlock($this->getAppid("GradientColor1ACI", 344));
-        $appidTable->addBlock($this->getAppid("GradientColor2ACI", 345));
+        $styleTable = $this->createTable("STYLE", $this->getNewHandle(), 2);
+        $viewTable = $this->createTable("VIEW", $this->getNewHandle(), 2);
+        $ucsTable = $this->createTable("UCS", $this->getNewHandle(), 0);
+        $appidTable = $this->createTable("APPID", $this->handles["appidTable"], 8);
+        $appidTable->addBlock($this->getAppid("ACAD", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("AcadAnnoPO", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("AcadAnnotative", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("ACAD_DSTYLE_DIMJAG", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("ACAD_DSTYLE_DIMTALN", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("ACAD_MLEADERVER", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("ACAD_NAV_VCDISPLAY", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("ACAD_PSEXT", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("GradientColor1ACI", $this->getNewHandle()));
+        $appidTable->addBlock($this->getAppid("GradientColor2ACI", $this->getNewHandle()));
         $dimstyleTable = $this->getDimstyleTable();
 
         $this->tables->addBlock($vportTable);
@@ -597,7 +615,7 @@ class DxfConverter
     {
 
         $objects = new DxfBlock();
-        $objects->addBlock($this->createDictionary("15D", "1F"));
+        $objects->addBlock($this->createDictionary($this->handles["modelDictionary"], $this->handles["modelBlockRecord"]));
 //         $objects->addBlock($this->createDictionary("1FE", "1FD"));
 //         $objects->add(3, "ASDK_XREC_ANNOTATION_SCALE_INFO");
 //         $objects->add(360, "1FF");
@@ -605,33 +623,33 @@ class DxfConverter
 //         $objects->add(3, "ASDK_XREC_ANNOTATION_SCALE_INFO");
 //         $objects->add(360, 203);
         $objects->add(0, "DICTIONARY");
-        $objects->add(5, "D");
+        $objects->add(5, $this->handles["ACAD_GROUP"]);
         $objects->add(102, "{ACAD_REACTORS");
-        $objects->add(330, "C");
+        $objects->add(330, $this->handles["namedObjectDictionary"]);
         $objects->add(102, "}");
-        $objects->add(330, "C");
+        $objects->add(330, $this->handles["namedObjectDictionary"]);
         $objects->add(100, "AcDbDictionary");
         $objects->add(281, 1);
         $objects->add(0, "ACDBDICTIONARYWDFLT");
-        $objects->add(5, "E");
+        $objects->add(5, $this->handles["ACAD_PLOTSTYLENAME"]);
         $objects->add(102, "{ACAD_REACTORS");
-        $objects->add(330, "C");
+        $objects->add(330, $this->handles["namedObjectDictionary"]);
         $objects->add(102, "}");
-        $objects->add(330, "C");
+        $objects->add(330, $this->handles["namedObjectDictionary"]);
         $objects->add(100, "AcDbDictionary");
         $objects->add(281, 1);
         $objects->add(3, "Normal");
-        $objects->add(350, "F");
+        $objects->add(350, $this->handles["acdbPlaceHolder"]);
         $objects->add(100, "AcDbDictionaryWithDefault");
-        $objects->add(340, "F");
+        $objects->add(340, $this->handles["acdbPlaceHolder"]);
 
         $objects->addBlock($this->createRasterVariables());
         $objects->add(0, "ACDBPLACEHOLDER");
-        $objects->add(5, "F");
+        $objects->add(5, $this->handles["acdbPlaceHolder"]);
         $objects->add(102, "{ACAD_REACTORS");
-        $objects->add(330, "E");
+        $objects->add(330, $this->handles["ACAD_PLOTSTYLENAME"]);
         $objects->add(102, "}");
-        $objects->add(330, "E");
+        $objects->add(330, $this->handles["ACAD_PLOTSTYLENAME"]);
 
         return $objects;
     }
@@ -640,11 +658,11 @@ class DxfConverter
     {
         $object = new DxfBlock();
         $object->add(0, "RASTERVARIABLES");
-        $object->add(5, "1B");
+        $object->add(5, $this->handles["ACAD_IMAGE_VARS"]);
         $object->add(102, "{ACAD_REACTORS");
-        $object->add(330, "C");
+        $object->add(330, $this->handles["namedObjectDictionary"]);
         $object->add(102, "}");
-        $object->add(330, "C");
+        $object->add(330, $this->handles["namedObjectDictionary"]);
         $object->add(100, "AcDbRasterVariables");
         $object->add(90, 0);
         $object->add(70, 0);
@@ -656,29 +674,31 @@ class DxfConverter
 
     private function getDimstyleTable()
     {
+        $tableHandle = $this->getNewHandle();
+        $dimStyleEntryHandle = $this->getNewHandle();
         $preBody = new DxfBlock();
         $preBody->add(0, "TABLE");
         $preBody->add(2, "DIMSTYLE");
-        $preBody->add(5, "A");
+        $preBody->add(5, $tableHandle);
         $preBody->add(330, 0);
         $preBody->add(100, "AcDbSymbolTable");
         $preBody->add(70, 2);
         $preBody->add(100, "AcDbDimStyleTable");
         $preBody->add(71, 2);
-        $preBody->add(340, 27);
+        $preBody->add(340, $dimStyleEntryHandle);
         $postBody = new DxfBlock();
         $postBody->add(0, "ENDTAB");
         $dimstyleTable = new DxfContainer($preBody, $postBody);
 
         $dimstyle = new DxfBlock();
         $dimstyle->add(0, "DIMSTYLE");
-        $dimstyle->add(105, 27);
-        $dimstyle->add(330, "A");
+        $dimstyle->add(105, $dimStyleEntryHandle);
+        $dimstyle->add(330, $tableHandle);
         $dimstyle->add(100, "AcDbSymbolTableRecord");
         $dimstyle->add(100, "AcDbDimStyleTableRecord");
         $dimstyle->add(2, "Standard");
         $dimstyle->add(70, 0);
-        $dimstyle->add(340, 11);
+        $dimstyle->add(340, $this->getNewHandle());
 
         $dimstyleTable->addBlock($dimstyle);
         return $dimstyleTable;
@@ -689,7 +709,7 @@ class DxfConverter
         $appid = new DxfBlock();
         $appid->add(0, "APPID");
         $appid->add(5, $handle);
-        $appid->add(330, 9);
+        $appid->add(330, $this->handles["appidTable"]);
         $appid->add(100, "AcDbSymbolTableRecord");
         $appid->add(100, "AcDbRegAppTableRecord");
         $appid->add(2, $name);
@@ -699,10 +719,12 @@ class DxfConverter
 
     private function getLayerTable()
     {
+        $layerTableHandle = $this->getNewHandle();
+
         $preBody = new DxfBlock();
         $preBody->add(0, "TABLE");
         $preBody->add(2, "LAYER");
-        $preBody->add(5, 2);
+        $preBody->add(5, $layerTableHandle);
         $preBody->add(330, 0);
         $preBody->add(100, "AcDbSymbolTable");
         $preBody->add(70, 1);
@@ -712,8 +734,8 @@ class DxfConverter
 
         $layer = new DxfBlock();
         $layer->add(0, "LAYER");
-        $layer->add(5, 10);
-        $layer->add(330, 2);
+        $layer->add(5, $this->getNewHandle());
+        $layer->add(330, $layerTableHandle);
         $layer->add(100, "AcDbSymbolTableRecord");
         $layer->add(100, "AcDbLayerTableRecord");
         $layer->add(2, 0);
@@ -721,7 +743,7 @@ class DxfConverter
         $layer->add(62, 7);
         $layer->add(6, "Continuous");
         $layer->add(370, -3);
-        $layer->add(390, "F");
+        $layer->add(390, $this->handles["acdbPlaceHolder"]);
         $layer->add(348, 0);
         $layerTable->addBlock($layer);
         return $layerTable;
@@ -733,7 +755,7 @@ class DxfConverter
         $ltype = new DxfBlock();
         $ltype->add(0, "LTYPE");
         $ltype->add(5, $handle);
-        $ltype->add(330, 5);
+        $ltype->add(330, $this->handles["ltypeTable"]);
         $ltype->add(100, "AcDbSymbolTableRecord");
         $ltype->add(100, "AcDbLinetypeTableRecord");
         $ltype->add(2, $name);
@@ -749,8 +771,8 @@ class DxfConverter
     {
         $vport = new DxfBlock();
         $vport->add(0, "VPORT");
-        $vport->add(5, 94);
-        $vport->add(330, 8);
+        $vport->add(5, $this->getNewHandle());
+        $vport->add(330, $this->handles["vportTable"]);
         $vport->add(100, "AcDbSymbolTableRecord");
         $vport->add(100, "AcDbViewportTableRecord");
         $vport->add(2, "*Active");
@@ -801,7 +823,6 @@ class DxfConverter
         $vport->add(132, "0.0");
         $vport->add(79, 0);
         $vport->add(146, "0.0");
-        $vport->add(348, "9F");
         $vport->add(60, 3);
         $vport->add(61, 5);
         $vport->add(292, 1);
@@ -819,11 +840,11 @@ class DxfConverter
     {
         $layout = new DxfBlock();
         $layout->add(0, "LAYOUT");
-        $layout->add(5, 22);
+        $layout->add(5, $this->handles["modelLayout"]);
         $layout->add(102, "{ACAD_REACTORS");
-        $layout->add(330, "1A");
+        $layout->add(330, $this->handles["ACAD_LAYOUT"]);
         $layout->add(102, "}");
-        $layout->add(330, "1A");
+        $layout->add(330, $this->handles["ACAD_LAYOUT"]);
         $layout->add(100, "AcDbPlotSettings");
         $layout->add(1, "");
         $layout->add(2, "none_device");
@@ -883,8 +904,8 @@ class DxfConverter
         $layout->add(27, "1.0");
         $layout->add(37, "0.0");
         $layout->add(76, 0);
-        $layout->add(330, "1F");
-        $layout->add(331, "94");
+        $layout->add(330, $this->handles["modelBlockRecord"]);
+        $layout->add(331, $this->handles["vportTable"]);
         return $layout;
     }
 
@@ -895,9 +916,9 @@ class DxfConverter
         $layout->add(0, "LAYOUT");
         $layout->add(5, $layoutHandle);
         $layout->add(102, "{ACAD_REACTORS");
-        $layout->add(330, "1A");
+        $layout->add(330, $this->handles["ACAD_LAYOUT"]);
         $layout->add(102, "}");
-        $layout->add(330, "1A");
+        $layout->add(330, $this->handles["ACAD_LAYOUT"]);
         $layout->add(100, "AcDbPlotSettings");
         $layout->add(1, "");
         $layout->add(2, "Kyocera TASKalfa 3050ci XPS"); // don't hardcode this
@@ -1018,7 +1039,7 @@ class DxfConverter
 
         if ($name == "*Model_Space"){
             $record->add(102, "{ACAD_XDICTIONARY");
-            $record->add(360, "15D");
+            $record->add(360, $this->handles["modelDictionary"]);
             $record->add(102, "}");
         }
 
@@ -1037,20 +1058,20 @@ class DxfConverter
     {
         $dictionary = new DxfBlock();
         $dictionary->add(0, "DICTIONARY");
-        $dictionary->add(5, "C");
+        $dictionary->add(5, $this->handles["namedObjectDictionary"]);
         $dictionary->add(330, "0");
         $dictionary->add(100, "AcDbDictionary");
         $dictionary->add(281,1);
         $dictionary->add(3, "ACAD_GROUP");
-        $dictionary->add(350, "D");
+        $dictionary->add(350, $this->handles["ACAD_GROUP"]);
         $dictionary->add(3, "ACAD_LAYOUT");
-        $dictionary->add(350, "1A");
+        $dictionary->add(350, $this->handles["ACAD_LAYOUT"]);
         $dictionary->add(3, "ACAD_IMAGE_DICT");
-        $dictionary->add(350, "20B");
+        $dictionary->add(350, $this->handles["ACAD_IMAGE_DICT"]);
         $dictionary->add(3, "ACAD_IMAGE_VARS");
-        $dictionary->add(350, "1B");
+        $dictionary->add(350, $this->handles["ACAD_IMAGE_VARS"]);
         $dictionary->add(3, "ACAD_PLOTSTYLENAME");
-        $dictionary->add(350, "E");
+        $dictionary->add(350, $this->handles["ACAD_PLOTSTYLENAME"]);
 
         return $dictionary;
     }
@@ -1059,16 +1080,16 @@ class DxfConverter
     {
         $preBody = new DxfBlock();
         $preBody->add(0, "DICTIONARY");
-        $preBody->add(5, "1A");
+        $preBody->add(5, $this->handles["ACAD_LAYOUT"]);
         $preBody->add(102, "{ACAD_REACTORS");
-        $preBody->add(330, "C");
+        $preBody->add(330, $this->handles["namedObjectDictionary"]);
         $preBody->add(102, "}");
-        $preBody->add(330, "C");
+        $preBody->add(330, $this->handles["namedObjectDictionary"]);
         $preBody->add(100, "AcDbDictionary");
         $preBody->add(281,1);
 
         $layoutDictionary = new DxfContainer($preBody);
-        $layoutDictionary->addBlock($this->createLayoutForDictionary("Model", 22));
+        $layoutDictionary->addBlock($this->createLayoutForDictionary("Model", $this->handles["modelLayout"]));
 
         return $layoutDictionary;
     }
@@ -1077,11 +1098,11 @@ class DxfConverter
     {
         $preBody = new DxfBlock();
         $preBody->add(0, "DICTIONARY");
-        $preBody->add(5, "20B");
+        $preBody->add(5, $this->handles["ACAD_IMAGE_DICT"]);
         $preBody->add(102, "{ACAD_REACTORS");
-        $preBody->add(330, "C");
+        $preBody->add(330, $this->handles["namedObjectDictionary"]);
         $preBody->add(102, "}");
-        $preBody->add(330, "C");
+        $preBody->add(330, $this->handles["namedObjectDictionary"]);
         $preBody->add(100, "AcDbDictionary");
         $preBody->add(281,1);
 
