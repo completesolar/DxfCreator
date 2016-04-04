@@ -314,8 +314,8 @@ class DxfConverter
         $appidTable->addBlock($this->getAppid("ACAD_MLEADERVER", 107));
         $appidTable->addBlock($this->getAppid("ACAD_NAV_VCDISPLAY", "1A6"));
         $appidTable->addBlock($this->getAppid("ACAD_PSEXT", "1F6"));
-        $appidTable->addBlock($this->getAppid("GradientColor1ACI", 344));
-        $appidTable->addBlock($this->getAppid("GradientColor2ACI", 345));
+        $appidTable->addBlock($this->getAppid("GradientColor1ACI", "1F7"));
+        $appidTable->addBlock($this->getAppid("GradientColor2ACI", "1F8"));
         $dimstyleTable = $this->getDimstyleTable();
 
         $this->tables->addBlock($vportTable);
