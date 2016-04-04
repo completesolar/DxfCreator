@@ -11,6 +11,7 @@ use DxfCreator\Drawing\Page;
 use DxfCreator\Drawing\Pdf;
 use DxfCreator\Drawing\Polygon;
 use DxfCreator\Drawing\Block;
+use DxfCreator\Drawing\Text;
 
 class DxfConverter
 {
@@ -307,11 +308,13 @@ class DxfConverter
         $this->layoutDictionary = $this->createLayoutDictionary();
     }
 
+
     private function setUpTables()
     {
         $this->handles["appidTable"] = $this->getNewHandle();
         $this->handles["ltypeTable"] = $this->getNewHandle();
         $this->handles["vportTable"] = $this->getNewHandle();
+        $this->handles["styleTable"] = $this->getNewHandle();
 
         $vportTable = $this->createTable("VPORT", $this->getNewHandle(), 1);
         $vportTable->addBlock($this->getVport());
@@ -320,7 +323,9 @@ class DxfConverter
         $ltypeTable->addBlock($this->getLtype("ByLayer", "", $this->getNewHandle()));
         $ltypeTable->addBlock($this->getLtype("Continuous", "Solid line", $this->getNewHandle()));
         $layerTable = $this->getLayerTable();
-        $styleTable = $this->createTable("STYLE", $this->getNewHandle(), 2);
+        $styleTable = $this->createTable("STYLE", $this->handles["styleTable"], 2);
+        $styleTable->addBlock($this->getStyle("Standard", "arial.ttf", $this->getNewHandle()));
+        $styleTable->addBlock($this->getStyle("Label", "romans.shx", $this->getNewHandle()));
         $viewTable = $this->createTable("VIEW", $this->getNewHandle(), 2);
         $ucsTable = $this->createTable("UCS", $this->getNewHandle(), 0);
         $appidTable = $this->createTable("APPID", $this->handles["appidTable"], 8);
@@ -344,6 +349,27 @@ class DxfConverter
         $this->tables->addBlock($ucsTable);
         $this->tables->addBlock($appidTable);
         $this->tables->addBlock($dimstyleTable);
+    }
+
+    private function getStyle($name, $fontFile, $handle)
+    {
+        $style = new DxfBlock();
+        $style->add(0, "STYLE");
+        $style->add(5, $handle);
+        $style->add(330, $this->handles["styleTable"]);
+        $style->add(100, "AcDbSymbolTableRecord");
+        $style->add(100, "AcDbTextStyleTableRecord");
+        $style->add(2, $name);
+        $style->add(70, 0);
+        $style->add(40, "0.0");
+        $style->add(41, "1.0");
+        $style->add(50, "0.0");
+        $style->add(71, 0);
+        $style->add(42, 0.2);
+        $style->add(3, $fontFile);
+        $style->add(4, "");
+
+        return $style;
     }
 
     private function initializeSections()
@@ -484,6 +510,9 @@ class DxfConverter
             case "LWPOLYLINE":
                 $dxfEntity->addBlock($this->getPolygon($entity));
                 break;
+            case "TEXT":
+                $dxfEntity->addBlock($this->getText($entity));
+                break;
             case "MTEXT":
                 $dxfEntity->addBlock($this->getMText($entity));
                 break;
@@ -538,6 +567,27 @@ class DxfConverter
         $dxfInsert->add(50, $block->angle);
 
         return $dxfInsert;
+    }
+
+    private function getText(Text $text)
+    {
+        $dxfText = new DxfBlock();
+        $dxfText->add(100, "AcDbText");
+        $dxfText->add(10, "0.0");
+        $dxfText->add(20, "0.0");
+        $dxfText->add(30, "0.0");
+        $dxfText->add(40, $text->lineHeight);
+        $dxfText->add(1, $text->text);
+        $dxfText->add(50, $text->angle);
+        $dxfText->add(7, "Label");
+        $dxfText->add(72, $text->horizontalAlignment);
+        $dxfText->add(11, $text->position[0]);
+        $dxfText->add(21, $text->position[1]);
+        $dxfText->add(31, "0.0");
+        $dxfText->add(100, "AcDbText");
+        $dxfText->add(73, $text->verticalAlignment);
+
+        return $dxfText;
     }
 
     private function getMText(MText $mText)

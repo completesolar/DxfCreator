@@ -34,7 +34,8 @@ abstract class Drawable extends Entity
     public function setColor($color)
     {
         // Note that AutoCAD 'white' prints black if on a white background
-        $colors = ["black", "red", "yellow", "green", "cyan", "blue", "violet", "white"];
+        $colors = ["black", "red", "yellow", "green", "cyan", "blue", "violet", "white", "gray", "light_gray"
+        ];
 
         $index = array_search(strtolower($color), $colors);
         if ($index !== false){
