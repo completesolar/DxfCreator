@@ -514,6 +514,10 @@ class DxfConverter
         switch ($entity->type){
             case "LWPOLYLINE":
                 $dxfEntity->addBlock($this->getPolygon($entity));
+
+                if ($entity->fillType != "NONE"){
+                    $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle));
+                }
                 break;
             case "TEXT":
                 $dxfEntity->addBlock($this->getText($entity));
@@ -539,6 +543,90 @@ class DxfConverter
         }
 
         return $dxfEntity;
+    }
+
+    private function getHatch(Polygon $polygon, $blockRecordHandle)
+    {
+        $solid = $polygon->fillType == "SOLID";
+
+        $hatch = new DxfBlock();
+        $hatch->add(0, "HATCH");
+        $hatch->add(5, $this->getNewHandle());
+        $hatch->add(330, $blockRecordHandle);
+        $hatch->add(100, "AcDbEntity");
+        $hatch->add(67, 1);
+        $hatch->add(8, 0);
+        $hatch->add(62, $polygon->fillColor);
+
+        if (!$solid){
+            $hatch->add(370, intval($polygon->fillWeight*100));
+        }
+
+        $hatch->add(100, "AcDbHatch");
+        $hatch->add(10, "0.0");
+        $hatch->add(20, "0.0");
+        $hatch->add(30, "0.0");
+        $hatch->add(210, "0.0");
+        $hatch->add(220, "0.0");
+        $hatch->add(230, "1.0");
+        $hatch->add(2, $polygon->fillType);
+        if ($solid){
+            $hatch->add(70, 1);
+        } else {
+            $hatch->add(70, 0);
+        }
+
+        $hatch->add(71, 0);
+        $hatch->add(91, 1);
+        $hatch->add(92, 7);
+        $hatch->add(72, 0);
+        $hatch->add(73, 1);
+        $hatch->add(93, count($polygon->points));
+
+        foreach ($polygon->points as $point){
+            $hatch->add(10, $point[0]);
+            $hatch->add(20, $point[1]);
+        }
+
+        $hatch->add(97, 0);
+        $hatch->add(75, 1);
+        $hatch->add(76, 1);
+
+        if (!$solid){
+            $hatch->add(52, 0);
+            $hatch->add(41, "1.0");
+            $hatch->add(77, 0);
+
+            switch (strtoupper($polygon->fillType)){
+                case "ANSI31":
+                    $hatch->addBlock($this->getAnsi31FillPattern($polygon->fillScale));
+                    break;
+                default:
+                    throw new \Exception("Fill type not recognized");
+                    break;
+            }
+        }
+
+        $hatch->add(47, 0.007);
+        $hatch->add(98, 1);
+        $hatch->add(10, "0.0");
+        $hatch->add(20, "0.0");
+
+        return $hatch;
+    }
+
+    private function getAnsi31FillPattern($fillScale)
+    {
+        $pattern = new DxfBlock();
+        $pattern->add(78, 1);
+        $pattern->add(53, 45.0);
+        $pattern->add(43, "0.0");
+        $pattern->add(44, "0.0");
+        $pattern->add(45, -$fillScale * 0.1);
+        $pattern->add(46, $fillScale * 0.1);
+        $pattern->add(79, 0);
+
+        return $pattern;
     }
 
     private function getEllipse(Ellipse $ellipse)
