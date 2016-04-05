@@ -3,8 +3,7 @@ namespace DxfCreator\Drawing;
 
 abstract class Drawable extends Entity
 {
-    public $fillColor;
-    public $fillType;
+
     public $lineColor;
     public $lineType;
     public $lineWeight;
@@ -13,10 +12,8 @@ abstract class Drawable extends Entity
     {
         $options = array_replace($this->getDefaults(), $optionsGiven);
 
-        $this->fillColor = $this->setColor($options["fillColor"]);
-        $this->fillType = $options["fillType"];
         $this->lineColor = $this->setColor($options["lineColor"]);
-        $this->lineWeight = $this->setLineWeight($options["lineWeight"]);
+        $this->lineWeight = $this->setWeight($options["lineWeight"]);
         $this->setLineType($options["lineType"]);
         $this->angle = $options["angle"];
         $this->rotationPoint = $this->setRotationPoint($options["rotationPoint"]);
@@ -49,7 +46,7 @@ abstract class Drawable extends Entity
         return 0;
     }
 
-    public function setLineWeight($givenWeight)
+    public function setWeight($givenWeight)
     {
         $lineWeights = [0, 0.05, 0.09, 0.13, 0.15, 0.18, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5,
                 0.53, 0.6, 0.7, 0.8, 0.9, 1.0, 1.06, 1.2, 1.4, 1.58, 2.0, 2.11,
@@ -58,7 +55,7 @@ abstract class Drawable extends Entity
         $previousWeight = 0;
 
         if (!is_numeric($givenWeight)){
-            return 0;
+            throw new \Exception("Line weight value must be a number.");
         }
 
         foreach($lineWeights as $index => $weight){
@@ -67,12 +64,15 @@ abstract class Drawable extends Entity
                     if ($weight == $lineWeights[1] && $givenWeight != 0.0){
                         return $weight;
                     }
+
                     return ($weight - $givenWeight) <= ($givenWeight - $previousWeight) ? $weight : $previousWeight;
                 }
             }
 
             $previousWeight = $weight;
         }
+
+
 
         return $lineWeights[count($lineWeights) - 1];
     }
@@ -81,11 +81,13 @@ abstract class Drawable extends Entity
     {
         $lineTypes = ["solid", "_", "_ ", ".", "_.", "__."];
 
+        $type = $givenType;
+
         if (is_int($givenType) && array_key_exists($givenType, $lineTypes)){
             $type = $lineTypes[$givenType];
         }
 
-        switch (str_replace('-', '_', strtolower($givenType))){
+        switch (str_replace('-', '_', strtolower($type))){
             case "solid":
                 $this->lineType = "Continuous";
                 break;
@@ -113,8 +115,6 @@ abstract class Drawable extends Entity
     public function getDefaults()
     {
         return array(
-                "fillColor" => "green",
-                "fillType" => "solid",
                 "lineColor" => "0",
                 "lineWeight" => 0.13,
                 "lineType" => "solid",
