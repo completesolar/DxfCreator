@@ -319,9 +319,14 @@ class DxfConverter
         $vportTable = $this->createTable("VPORT", $this->getNewHandle(), 1);
         $vportTable->addBlock($this->getVport());
         $ltypeTable = $this->createTable("LTYPE", $this->handles["ltypeTable"], 1);
-        $ltypeTable->addBlock($this->getLtype("ByBlock", "", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ByLayer", "", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("Continuous", "Solid line", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ByBlock", "", "", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ByLayer", "", "", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("Continuous", "Solid line", "", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ACAD_ISO02W100", "ISO dash __ __ __ __ __ __ __ __ __ __ __ __ __", "_", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ACAD_ISO03W100", "ISO dash space __    __    __    __    __    __", "_ ", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ACAD_ISO07W100", "ISO dot . . . . . . . . . . . . . . . . . . . .", ".", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ACAD_ISO10W100", "ISO dash dot __ . __ . __ . __ . __ . __ . __ .", "_.", $this->getNewHandle()));
+        $ltypeTable->addBlock($this->getLtype("ACAD_ISO11W100", "ISO double-dash dot __ __ . __ __ . __ __ . __", "__.", $this->getNewHandle()));
         $layerTable = $this->getLayerTable();
         $styleTable = $this->createTable("STYLE", $this->handles["styleTable"], 2);
         $styleTable->addBlock($this->getStyle("Standard", "arial.ttf", $this->getNewHandle()));
@@ -501,7 +506,7 @@ class DxfConverter
         $dxfEntity->add(8, 0);
 
         if(is_a($entity, "DxfCreator\Drawing\Drawable")){
-            $dxfEntity->add(6, "Continuous");
+            $dxfEntity->add(6, $entity->lineType);
             $dxfEntity->add(62, $entity->lineColor);
             $dxfEntity->add(370, intval($entity->lineWeight*100));
         }
@@ -800,7 +805,7 @@ class DxfConverter
     }
 
 
-    private function getLtype($name, $description, $handle)
+    private function getLtype($name, $description, $pattern, $handle)
     {
         $ltype = new DxfBlock();
         $ltype->add(0, "LTYPE");
@@ -813,8 +818,89 @@ class DxfConverter
         $ltype->add(3, $description);
         $ltype->add(72, 65);
         $ltype->add(73, 0);
-        $ltype->add(40, "0.0");
+        $ltype->addBlock($this->getLineTypePattern($pattern));
+
         return $ltype;
+    }
+
+    private function getLineTypePattern($pattern)
+    {
+        $patternBlock = new DxfBlock();
+
+        if ($pattern == ""){
+            $patternBlock->add(73, 0);
+            $patternBlock->add(40, "0.0");
+            return $patternBlock;
+        }
+
+        $chars = str_split($pattern);
+        $length = 0;
+        $numElements = 0;
+        $symbolLengths = [];
+
+        foreach ($chars as $char){
+            switch($char){
+                case '_':
+                    $length += 15.0;
+                    $numElements += 2;
+                    break;
+                case '.':
+                    $length += 3.0;
+                    $numElements += 2;
+                    break;
+                case ' ':
+                    $length += 15.0;
+                    break;
+                default:
+                    throw new \Exception("Unrecognized symbol in linetype pattern");
+                    break;
+            }
+        }
+
+        $patternBlock->add(73, $numElements);
+        $patternBlock->add(40, $length);
+        $lastWasSpace = false;
+        $firstPass = true;
+        foreach ($chars as $char){
+
+            switch($char){
+            case '_':
+                if (!($firstPass || $lastWasSpace)){
+                    $patternBlock->add(49, -3.0);
+                    $patternBlock->add(74, 0);
+                }
+                $patternBlock->add(49, 12.0);
+                $patternBlock->add(74, 0);
+                $lastWasSpace = false;
+                break;
+            case '.':
+                if (!($firstPass || $lastWasSpace)){
+                    $patternBlock->add(49, -3.0);
+                    $patternBlock->add(74, 0);
+                }
+                $patternBlock->add(49, 0.0);
+                $patternBlock->add(74, 0);
+                $lastWasSpace = false;
+                break;
+            case ' ':
+                $patternBlock->add(49, -18.0);
+                $patternBlock->add(74, 0);
+                $lastWasSpace = true;
+                break;
+            default:
+                throw new \Exception("Unrecognized symbol in linetype pattern");
+                break;
+            }
+
+            $firstPass = false;
+        }
+
+        if (!$lastWasSpace){
+            $patternBlock->add(49, -3.0);
+            $patternBlock->add(74, 0);
+        }
+
+        return $patternBlock;
     }
 
     private function getVport()
@@ -1208,6 +1294,7 @@ class DxfConverter
                         10 => "-1.000000000000000E+20",
                         20 => "-1.000000000000000E+20",
                         30 => "-1.000000000000000E+20"],
+                '$LTSCALE' => [40 => "0.03"],
         ];
 
         return $variables;

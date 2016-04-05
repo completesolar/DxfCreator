@@ -18,7 +18,9 @@ class DxfBlock
 
     public function addBlock(DxfBlock $block)
     {
-        $this->body[] = $block;
+        if (!is_null($block)){
+            $this->body[] = $block;
+        }
     }
 
     public function toString()
