@@ -13,8 +13,9 @@ interface DrawingInterface
 
     public function drawRectangle($page, $x1, $y1, $x2, $y2, $drawingOptions = []);
 
-    // For now this is just a facade for drawParagraph
-    public function drawText($page, $text, $x, $y, $lineHeight, $width = null, $options = []);
+    public function drawText($page, $text, $x, $y, $lineHeight, $options = []);
+
+    public function drawMText($page, $text, $x, $y, $lineHeight, $width = null, $options = []);
 
     public function drawPolygon ($page, array $points, $options = []);
 

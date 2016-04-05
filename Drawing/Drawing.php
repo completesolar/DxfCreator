@@ -21,7 +21,12 @@ class Drawing implements DrawingInterface
         return $this->pages[$page]->add(new Polygon($points, $options));
     }
 
-    public function drawText($page, $text, $x, $y, $lineHeight, $width = null, $options = [])
+    public function drawText($page, $text, $x, $y, $lineHeight, $options = [])
+    {
+        return $this->pages[$page]->add(new Text($text, $x, $y, $lineHeight, $options));
+    }
+
+    public function drawMText($page, $text, $x, $y, $lineHeight, $width = null, $options = [])
     {
         return $this->pages[$page]->add(new MText($text, $x, $y, $lineHeight, $width, $options));
     }
