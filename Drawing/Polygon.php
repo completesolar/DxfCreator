@@ -48,9 +48,6 @@ class Polygon extends Drawable
         $this->fillColor = $this->setColor($options["fillColor"]);
         $this->fillWeight = $this->setWeight($options["fillWeight"]);
         $this->cutouts = $options["cutouts"];
-
-        echo "new polygon\n";
-        var_dump($this->cutouts);
     }
 
     public function setFillType($givenFillType)
