@@ -263,9 +263,9 @@ class DxfConverter
 
 
         if ($pageNum == 0){
-            $this->entities->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle));
+            $this->entities->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $pageNum));
         } else {
-            $layoutBlock->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle));
+            $layoutBlock->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $pageNum));
         }
     }
 
@@ -495,7 +495,7 @@ class DxfConverter
         return $dxfImage;
     }
 
-    private function getEntityBlock(Entity $entity, $entityHandle, $layoutBlockRecordHandle, $definitionHandle)
+    private function getEntityBlock(Entity $entity, $entityHandle, $layoutBlockRecordHandle, $definitionHandle, $pageNum)
     {
         $dxfEntity = new DxfBlock();
         $dxfEntity->add(0, $entity->type);
@@ -516,7 +516,7 @@ class DxfConverter
                 $dxfEntity->addBlock($this->getPolygon($entity));
 
                 if ($entity->fillType != "NONE"){
-                    $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle));
+                    $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle, $pageNum));
                 }
                 break;
             case "TEXT":
@@ -545,8 +545,9 @@ class DxfConverter
         return $dxfEntity;
     }
 
-    private function getHatch(Polygon $polygon, $blockRecordHandle)
+    private function getHatch(Polygon $polygon, $blockRecordHandle, $pageNum)
     {
+        echo "In hatch\n";
         $solid = $polygon->fillType == "SOLID";
 
         $hatch = new DxfBlock();
@@ -577,7 +578,17 @@ class DxfConverter
         }
 
         $hatch->add(71, 0);
-        $hatch->add(91, 1);
+
+        $paths = 1;
+
+        echo "Polygon cutout id: " . $polygon->cutouts[0] . "\n";
+        if (isset($polygon->cutouts)){
+            echo "It is set!\n";
+            $paths += count($polygon->cutouts);
+        }
+
+        echo "Paths = " . $paths . "\n";
+        $hatch->add(91, $paths);
         $hatch->add(92, 7);
         $hatch->add(72, 0);
         $hatch->add(73, 1);
@@ -589,6 +600,29 @@ class DxfConverter
         }
 
         $hatch->add(97, 0);
+
+        if (isset($polygon->cutouts)){
+            for ($i = 0; $i < count($polygon->cutouts); $i++){
+                $cutout = $this->drawing->pages[$pageNum]->content[$polygon->cutouts[$i]];
+
+                if (!is_a($cutout, "DxfCreator\Drawing\Polygon")){
+                    throw new \Exception("Fill cutout must be class Polygon.");
+                }
+
+                $hatch->add(92, 22);
+                $hatch->add(72, 0);
+                $hatch->add(73, 1);
+                $hatch->add(93, count($cutout->points));
+
+                foreach ($cutout->points as $point){
+                    $hatch->add(10, $point[0]);
+                    $hatch->add(20, $point[1]);
+                }
+
+                $hatch->add(97, 0);
+            }
+        }
+
         $hatch->add(75, 1);
         $hatch->add(76, 1);
 

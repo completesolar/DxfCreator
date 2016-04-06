@@ -9,6 +9,7 @@ class Polygon extends Drawable
     public $fillType;
     public $fillScale;
     public $fillWeight;
+    public $cutouts;
 
     public function __construct(array $newPoints, array $options = [])
     {
@@ -46,6 +47,10 @@ class Polygon extends Drawable
         $this->fillScale = $options["fillScale"];
         $this->fillColor = $this->setColor($options["fillColor"]);
         $this->fillWeight = $this->setWeight($options["fillWeight"]);
+        $this->cutouts = $options["cutouts"];
+
+        echo "new polygon\n";
+        var_dump($this->cutouts);
     }
 
     public function setFillType($givenFillType)
@@ -71,6 +76,7 @@ class Polygon extends Drawable
                 "fillType" => "NONE",
                 "fillWeight" => 0.13,
                 "closed" => "true",
+                "cutouts" => null,
         );
     }
 }
