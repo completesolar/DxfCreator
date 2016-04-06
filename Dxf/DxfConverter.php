@@ -547,7 +547,6 @@ class DxfConverter
 
     private function getHatch(Polygon $polygon, $blockRecordHandle, $pageNum)
     {
-        echo "In hatch\n";
         $solid = $polygon->fillType == "SOLID";
 
         $hatch = new DxfBlock();
@@ -578,16 +577,12 @@ class DxfConverter
         }
 
         $hatch->add(71, 0);
-
         $paths = 1;
 
-        echo "Polygon cutout id: " . $polygon->cutouts[0] . "\n";
         if (isset($polygon->cutouts)){
-            echo "It is set!\n";
             $paths += count($polygon->cutouts);
         }
 
-        echo "Paths = " . $paths . "\n";
         $hatch->add(91, $paths);
         $hatch->add(92, 7);
         $hatch->add(72, 0);
