@@ -69,8 +69,8 @@ class Polygon extends Drawable
     {
         return array(
                 "fillScale" => 1.0,
-                "fillColor" => "black",
-                "fillType" => "NONE",
+                "fillColor" => "NONE",
+                "fillType" => "SOLID",
                 "fillWeight" => 0.13,
                 "closed" => "true",
                 "cutouts" => null,

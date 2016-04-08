@@ -497,7 +497,13 @@ class DxfConverter
 
     private function getEntityBlock(Entity $entity, $entityHandle, $layoutBlockRecordHandle, $definitionHandle, $pageNum)
     {
+
         $dxfEntity = new DxfBlock();
+
+        if ($entity->type == "LWPOLYLINE" && $entity->fillColor != "NONE"){
+            $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle, $pageNum));
+        }
+
         $dxfEntity->add(0, $entity->type);
         $dxfEntity->add(5, $entityHandle);
         $dxfEntity->add(330, $layoutBlockRecordHandle);
@@ -514,10 +520,6 @@ class DxfConverter
         switch ($entity->type){
             case "LWPOLYLINE":
                 $dxfEntity->addBlock($this->getPolygon($entity));
-
-                if ($entity->fillType != "NONE"){
-                    $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle, $pageNum));
-                }
                 break;
             case "TEXT":
                 $dxfEntity->addBlock($this->getText($entity));
