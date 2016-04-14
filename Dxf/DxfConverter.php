@@ -735,12 +735,16 @@ class DxfConverter
 
     private function formatMTextString(MText $mText)
     {
+        $text = $mText->text;
+        $text = str_replace("\n", '\P', $text);
+        $text = str_replace("\t", '^I', $text);
+
         $bold = $mText->bold? 1 : 0;
         $italic = $mText->italic? 1 : 0;
         $underlineBegin = $mText->underline? '\L' : '';
         $underlineEnd = $mText->underline? '\l' : '';
         $textString =  '\A1;{\f' . $mText->font . '|b' . $bold . '|i' . $italic
-                . '|c0|p0;' . $underlineBegin . $mText->text . $underlineEnd . '}';
+                . '|c0|p0;' . $underlineBegin . $text . $underlineEnd . '}';
 
         $chunks = str_split($textString, 250);
 
