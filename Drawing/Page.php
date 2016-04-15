@@ -43,9 +43,19 @@ class Page
         $this->yLength = $options["yLength"];
     }
 
-    public function add($object)
+    public function add($shape)
     {
-        $this->content[] = $object;
+        $this->content[] = $shape;
         return max(array_keys($this->content));
+    }
+
+    public function detach(array $shapeRefs)
+    {
+        $shapes = [];
+        foreach ($shapeRefs as $ref){
+            $shapes[] = $this->content[$ref];
+            unset($this->content[$ref]);
+        }
+        return $shapes;
     }
 }

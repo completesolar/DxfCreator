@@ -31,5 +31,7 @@ interface DrawingInterface
 
     public function insertBlockDefinitionFile($filepath, $names = []);
 
+    public function defineBlock($name, array $shapes, $fromPage, $x, $y);
+
 
 }

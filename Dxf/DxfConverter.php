@@ -12,6 +12,7 @@ use DxfCreator\Drawing\Pdf;
 use DxfCreator\Drawing\Polygon;
 use DxfCreator\Drawing\Block;
 use DxfCreator\Drawing\Text;
+use DxfCreator\Drawing\CustomBlock;
 
 class DxfConverter
 {
@@ -39,7 +40,7 @@ class DxfConverter
         $this->writeToFile($filePath);
     }
 
-    private function setBlockDefinitions()
+    private function setExternalBlockDefinitions()
     {
         foreach ($this->drawing->blockDefinitionFiles as $definition){
             $file = file_get_contents($definition->filepath);
@@ -69,6 +70,24 @@ class DxfConverter
                     $this->blockDefinitions[] = new DxfBlockDefinition($name, $basePoint, $content, $this->getNewHandle(), $this->getNewHandle(), $blockRecordHandle);
                 }
             }
+        }
+    }
+
+    private function setCustomBlockDefinitions()
+    {
+        foreach ($this->drawing->customBlocks as $block){
+            $blockRecordHandle = $this->getNewHandle();
+            $this->blockRecords[$block->name] = new DxfBlockRecord($block->name, $blockRecordHandle);
+
+            $dxfShapes = new DxfBlock();
+            foreach ($block->shapes as $shape){
+                // There are going to be issues if you include a hatch with cutouts in a CustomBlock.
+                // TODO: Cutout logic will need to be redesigned.
+                // Images/PDFs cannot be included in blocks for now.
+                $dxfShapes->addBlock($this->getEntityBlock($shape, $this->getNewHandle(), $blockRecordHandle, null, null));
+            }
+
+            $this->blockDefinitions[] = new DxfBlockDefinition($block->name, $block->basePoint, $dxfShapes, $this->getNewHandle(), $this->getNewHandle(), $blockRecordHandle);
         }
     }
 
@@ -285,7 +304,8 @@ class DxfConverter
         $this->setUpTables();
         $this->setUpObjects();
         $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", $this->handles["modelBlockRecord"]));
-        $this->setBlockDefinitions();
+        $this->setExternalBlockDefinitions();
+        $this->setCustomBlockDefinitions();
 
         foreach ($this->blockDefinitions as $definition){
             $this->blocks->addBlock($definition->toBlock());
@@ -736,6 +756,8 @@ class DxfConverter
     private function formatMTextString(MText $mText)
     {
         $text = $mText->text;
+        $text = str_replace("\r\n", '\P', $text);
+        $text = str_replace("\r", '\P', $text);
         $text = str_replace("\n", '\P', $text);
         $text = str_replace("\t", '^I', $text);
 
