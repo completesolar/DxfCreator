@@ -4,11 +4,13 @@ class Drawing implements DrawingInterface
 {
     public $pages;
     public $blockDefinitionFiles;
+    public $customBlocks;
 
     public function __construct()
     {
         $this->pages = array();
         $this->blockDefinitionFiles = array();
+        $this->customBlocks = array();
     }
 
     public function drawRectangle($page, $x1, $y1, $x2, $y2, $options = [])
@@ -75,6 +77,12 @@ class Drawing implements DrawingInterface
     public function insertBlock($page, $name, $x, $y, $scale, $options = [])
     {
         return $this->pages[$page]->add(new Block($name, $x, $y, $scale, $options));
+    }
+
+    public function defineBlock($name, array $shapeRefs, $fromPage, $x, $y)
+    {
+        $shapes = $this->pages[$fromPage]->detach($shapeRefs);
+        $this->customBlocks[] = new CustomBlock($name, $shapes, $x, $y);
     }
 
 
