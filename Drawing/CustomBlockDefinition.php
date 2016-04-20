@@ -1,7 +1,7 @@
 <?php
 namespace DxfCreator\Drawing;
 
-class CustomBlock
+class CustomBlockDefinition
 {
     public $name;
     public $shapes;
