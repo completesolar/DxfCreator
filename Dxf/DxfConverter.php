@@ -12,7 +12,7 @@ use DxfCreator\Drawing\Pdf;
 use DxfCreator\Drawing\Polygon;
 use DxfCreator\Drawing\Block;
 use DxfCreator\Drawing\Text;
-use DxfCreator\Drawing\CustomBlock;
+use DxfCreator\Drawing\CustomBlockDefinition;
 
 class DxfConverter
 {
@@ -75,13 +75,13 @@ class DxfConverter
 
     private function setCustomBlockDefinitions()
     {
-        foreach ($this->drawing->customBlocks as $block){
+        foreach ($this->drawing->customBlockDefinitions as $block){
             $blockRecordHandle = $this->getNewHandle();
             $this->blockRecords[$block->name] = new DxfBlockRecord($block->name, $blockRecordHandle);
 
             $dxfShapes = new DxfBlock();
             foreach ($block->shapes as $shape){
-                // There are going to be issues if you include a hatch with cutouts in a CustomBlock.
+                // There are going to be issues if you include a hatch with cutouts in a CustomBlockDefinition.
                 // TODO: Cutout logic will need to be redesigned.
                 // Images/PDFs cannot be included in blocks for now.
                 $dxfShapes->addBlock($this->getEntityBlock($shape, $this->getNewHandle(), $blockRecordHandle, null, null));
@@ -194,7 +194,7 @@ class DxfConverter
         $file->addBlock($this->objects);
         $file->add(0, "EOF");
 
-        file_put_contents($filePath, $file->toString());
+        file_put_contents($filePath, utf8_encode($file->toString()));
     }
 
     private function handseedVariable()
@@ -765,8 +765,9 @@ class DxfConverter
         $italic = $mText->italic? 1 : 0;
         $underlineBegin = $mText->underline? '\L' : '';
         $underlineEnd = $mText->underline? '\l' : '';
-        $textString =  '\A1;{\f' . $mText->font . '|b' . $bold . '|i' . $italic
-                . '|c0|p0;' . $underlineBegin . $text . $underlineEnd . '}';
+        $formatTag = "\\f" . $mText->font . "|b" . $bold . "|i" . $italic . "|c0|p0;";
+        $text = $this->smartReplace('\.', "\\fSymbol|b0|i0|c2|p18;" . "· " . $formatTag, $text);
+        $textString =  "\\A1;{" . $formatTag . $underlineBegin . $text . $underlineEnd . '}';
 
         $chunks = str_split($textString, 250);
 
@@ -781,6 +782,12 @@ class DxfConverter
         }
 
         return $dxfString;
+    }
+
+    private function smartReplace($searchString, $replaceString, $text)
+    {
+        $searchString = str_replace("\\\\", "\\", $searchString);
+        return preg_replace('/(?:^|[^\\\])(?:\\\\)*(' . $searchString . ')/', $replaceString, $text);
     }
 
     private function getPolygon(Polygon $polygon)
