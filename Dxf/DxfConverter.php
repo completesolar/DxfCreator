@@ -765,9 +765,9 @@ class DxfConverter
         $italic = $mText->italic? 1 : 0;
         $underlineBegin = $mText->underline? '\L' : '';
         $underlineEnd = $mText->underline? '\l' : '';
-        $formatTag = "\\f" . $mText->font . "|b" . $bold . "|i" . $italic . "|c0|p0;";
-        $text = $this->smartReplace('\.', "\\fSymbol|b0|i0|c2|p18;" . "· " . $formatTag, $text);
-        $textString =  "\\A1;{" . $formatTag . $underlineBegin . $text . $underlineEnd . '}';
+        $formatTag = '\f' . $mText->font . '|b' . $bold . '|i' . $italic . '|c0|p0;';
+        $text = $this->smartReplace('\-', '\fSymbol|b0|i0|c2|p18;' . "· " . $formatTag, $text);
+        $textString =  '\A1;{' . $formatTag . $underlineBegin . $text . $underlineEnd . '}';
 
         $chunks = str_split($textString, 250);
 
@@ -786,8 +786,8 @@ class DxfConverter
 
     private function smartReplace($searchString, $replaceString, $text)
     {
-        $searchString = str_replace("\\\\", "\\", $searchString);
-        return preg_replace('/(?:^|[^\\\])(?:\\\\)*(' . $searchString . ')/', $replaceString, $text);
+        $searchString = preg_quote($searchString);
+        return preg_replace('/(^|[^\\\\])(\\\\\\\\)*\\K' . $searchString . '/', $replaceString, $text);
     }
 
     private function getPolygon(Polygon $polygon)
