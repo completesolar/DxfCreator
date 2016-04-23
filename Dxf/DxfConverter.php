@@ -211,6 +211,8 @@ class DxfConverter
         $blockRecordTable->addBlock($this->createBlockRecord("*Model_Space", $this->handles["modelBlockRecord"], $this->handles["modelLayout"]));
         $layouts = new DxfBlock();
 
+        $this->extractModelSpaceContent();
+
         for ($pageNum = 0; $pageNum < count($this->drawing->pages); $pageNum++){
             $this->extractPageContent($pageNum, $blockRecordTable, $layouts);
         }
@@ -228,40 +230,48 @@ class DxfConverter
         $this->header->addBlock($this->handseedVariable());
     }
 
-    private function extractPageContent($pageNum, &$blockRecordTable, &$layouts)
+    private function extractModelSpaceContent()
     {
-        $marginBottom = $this->drawing->pages[$pageNum]->marginBottom;
-        $marginLeft = $this->drawing->pages[$pageNum]->marginLeft;
-        $marginRight = $this->drawing->pages[$pageNum]->marginRight;
-        $marginTop = $this->drawing->pages[$pageNum]->marginTop;
-        $name = $this->drawing->pages[$pageNum]->name;
-        $xLength = $this->drawing->pages[$pageNum]->xLength;
-        $yLength = $this->drawing->pages[$pageNum]->yLength;
+        $placeHolder = "";
+        foreach ($this->drawing->modelSpace->content as $entity){
+            $this->extractEntity("model", $entity, $this->handles["modelBlockRecord"], $placeHolder);
+        }
+    }
+
+    private function extractPageContent($page, &$blockRecordTable, &$layouts)
+    {
+        $marginBottom = $this->drawing->pages[$page]->marginBottom;
+        $marginLeft = $this->drawing->pages[$page]->marginLeft;
+        $marginRight = $this->drawing->pages[$page]->marginRight;
+        $marginTop = $this->drawing->pages[$page]->marginTop;
+        $name = $this->drawing->pages[$page]->name;
+        $xLength = $this->drawing->pages[$page]->xLength;
+        $yLength = $this->drawing->pages[$page]->yLength;
         $blockRecordHandle = $this->getNewHandle();
         $layoutHandle = $this->getNewHandle();
 
-        if ($pageNum == 0){
+        if ($page == 0){
             $id = "*Paper_Space";
         } else {
-            $id = "*Paper_Space" . ($pageNum - 1);
+            $id = "*Paper_Space" . ($page - 1);
         }
 
         $blockRecordTable->addBlock($this->createBlockRecord($id, $blockRecordHandle, $layoutHandle));
         $layoutBlock = $this->createLayoutBlock($id, $blockRecordHandle);
         $this->layoutDictionary->addBlock($this->createLayoutForDictionary($name, $layoutHandle));
         $layouts->addBlock($this->createLayoutObject($blockRecordHandle, $layoutHandle, $marginLeft,
-                $marginBottom, $marginRight, $marginTop, $xLength, $yLength, $name, $pageNum));
+                $marginBottom, $marginRight, $marginTop, $xLength, $yLength, $name, $page));
 
-        if (!empty($this->drawing->pages[$pageNum]->content)){
-            foreach ($this->drawing->pages[$pageNum]->content as $entity){
-                $this->extractEntity($pageNum, $entity, $blockRecordHandle, $layoutBlock);
+        if (!empty($this->drawing->pages[$page]->content)){
+            foreach ($this->drawing->pages[$page]->content as $entity){
+                $this->extractEntity($page, $entity, $blockRecordHandle, $layoutBlock);
             }
         }
 
         $this->blocks->addBlock($layoutBlock);
     }
 
-    private function extractEntity($pageNum, $entity, $blockRecordHandle, &$layoutBlock)
+    private function extractEntity($page, $entity, $blockRecordHandle, &$layoutBlock)
     {
         $entityHandle = $this->getNewHandle();
 
@@ -281,10 +291,10 @@ class DxfConverter
         }
 
 
-        if ($pageNum == 0){
-            $this->entities->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $pageNum));
+        if ($page == 0 || $page == "model"){
+            $this->entities->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $page));
         } else {
-            $layoutBlock->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $pageNum));
+            $layoutBlock->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $page));
         }
     }
 
@@ -515,20 +525,24 @@ class DxfConverter
         return $dxfImage;
     }
 
-    private function getEntityBlock(Entity $entity, $entityHandle, $layoutBlockRecordHandle, $definitionHandle, $pageNum)
+    private function getEntityBlock(Entity $entity, $entityHandle, $layoutBlockRecordHandle, $definitionHandle, $page)
     {
 
         $dxfEntity = new DxfBlock();
 
         if ($entity->type == "LWPOLYLINE" && $entity->fillColor != "NONE"){
-            $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle, $pageNum));
+            $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle, $page));
         }
 
         $dxfEntity->add(0, $entity->type);
         $dxfEntity->add(5, $entityHandle);
         $dxfEntity->add(330, $layoutBlockRecordHandle);
         $dxfEntity->add(100, "AcDbEntity");
-        $dxfEntity->add(67, 1);
+
+        if ($page !== "model"){
+            $dxfEntity->add(67, 1);
+        }
+
         $dxfEntity->add(8, 0);
 
         if(is_a($entity, "DxfCreator\Drawing\Drawable")){
@@ -567,7 +581,7 @@ class DxfConverter
         return $dxfEntity;
     }
 
-    private function getHatch(Polygon $polygon, $blockRecordHandle, $pageNum)
+    private function getHatch(Polygon $polygon, $blockRecordHandle, $page)
     {
         $solid = $polygon->fillType == "SOLID";
 
@@ -576,7 +590,10 @@ class DxfConverter
         $hatch->add(5, $this->getNewHandle());
         $hatch->add(330, $blockRecordHandle);
         $hatch->add(100, "AcDbEntity");
-        $hatch->add(67, 1);
+
+        if ($page !== "model"){
+            $hatch->add(67, 1);
+        }
         $hatch->add(8, 0);
         $hatch->add(62, $polygon->fillColor);
 
@@ -620,7 +637,11 @@ class DxfConverter
 
         if (isset($polygon->cutouts)){
             for ($i = 0; $i < count($polygon->cutouts); $i++){
-                $cutout = $this->drawing->pages[$pageNum]->content[$polygon->cutouts[$i]];
+                if ($page == "model"){
+                    $cutout = $this->drawing->modelSpace->content[$polygon->cutouts[$i]];
+                } else {
+                    $cutout = $this->drawing->pages[$page]->content[$polygon->cutouts[$i]];
+                }
 
                 if (!is_a($cutout, "DxfCreator\Drawing\Polygon")){
                     throw new \Exception("Fill cutout must be class Polygon.");
