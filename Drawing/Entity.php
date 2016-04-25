@@ -8,5 +8,6 @@ abstract class Entity
     public $angle;
     public $rotationPoint;
     public $center;
+    public $layer;
 }
 

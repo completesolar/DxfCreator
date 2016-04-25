@@ -13,6 +13,7 @@ use DxfCreator\Drawing\Polygon;
 use DxfCreator\Drawing\Block;
 use DxfCreator\Drawing\Text;
 use DxfCreator\Drawing\CustomBlockDefinition;
+use DxfCreator\Drawing\Layer;
 
 class DxfConverter
 {
@@ -527,7 +528,6 @@ class DxfConverter
 
     private function getEntityBlock(Entity $entity, $entityHandle, $layoutBlockRecordHandle, $definitionHandle, $page)
     {
-
         $dxfEntity = new DxfBlock();
 
         if ($entity->type == "LWPOLYLINE" && $entity->fillColor != "NONE"){
@@ -543,12 +543,18 @@ class DxfConverter
             $dxfEntity->add(67, 1);
         }
 
-        $dxfEntity->add(8, 0);
+        $dxfEntity->add(8, $entity->layer);
 
         if(is_a($entity, "DxfCreator\Drawing\Drawable")){
-            $dxfEntity->add(6, $entity->lineType);
-            $dxfEntity->add(62, $entity->lineColor);
-            $dxfEntity->add(370, intval($entity->lineWeight*100));
+            if ($entity->lineType != ""){
+                $dxfEntity->add(6, $entity->lineType);
+            }
+            if ($entity->lineColor != ""){
+                $dxfEntity->add(62, $entity->lineColor);
+            }
+            if ($entity->lineWeight != ""){
+                $dxfEntity->add(370, intval($entity->lineWeight*100));
+            }
         }
 
         switch ($entity->type){
@@ -955,25 +961,42 @@ class DxfConverter
         $preBody->add(5, $layerTableHandle);
         $preBody->add(330, 0);
         $preBody->add(100, "AcDbSymbolTable");
-        $preBody->add(70, 1);
+        $preBody->add(70, count($this->drawing->layers)+1);
         $postBody = new DxfBlock();
         $postBody->add(0, "ENDTAB");
         $layerTable = new DxfContainer($preBody, $postBody);
 
-        $layer = new DxfBlock();
-        $layer->add(0, "LAYER");
-        $layer->add(5, $this->getNewHandle());
-        $layer->add(330, $layerTableHandle);
-        $layer->add(100, "AcDbSymbolTableRecord");
-        $layer->add(100, "AcDbLayerTableRecord");
-        $layer->add(2, 0);
-        $layer->add(70, 0);
-        $layer->add(62, 7);
-        $layer->add(6, "Continuous");
-        $layer->add(370, -3);
-        $layer->add(390, $this->handles["acdbPlaceHolder"]);
-        $layer->add(348, 0);
-        $layerTable->addBlock($layer);
+        $layerDxf = new DxfBlock();
+        $layerDxf->add(0, "LAYER");
+        $layerDxf->add(5, $this->getNewHandle());
+        $layerDxf->add(330, $layerTableHandle);
+        $layerDxf->add(100, "AcDbSymbolTableRecord");
+        $layerDxf->add(100, "AcDbLayerTableRecord");
+        $layerDxf->add(2, 0);
+        $layerDxf->add(70, 0);
+        $layerDxf->add(62, 7);
+        $layerDxf->add(6, "Continuous");
+        $layerDxf->add(370, -3);
+        $layerDxf->add(390, $this->handles["acdbPlaceHolder"]);
+        $layerDxf->add(348, 0);
+        $layerTable->addBlock($layerDxf);
+
+        foreach ($this->drawing->layers as $layer){
+            $layerDxf = new DxfBlock();
+            $layerDxf->add(0, "LAYER");
+            $layerDxf->add(5, $this->getNewHandle());
+            $layerDxf->add(330, $layerTableHandle);
+            $layerDxf->add(100, "AcDbSymbolTableRecord");
+            $layerDxf->add(100, "AcDbLayerTableRecord");
+            $layerDxf->add(2, $layer->name);
+            $layerDxf->add(70, 0);
+            $layerDxf->add(62, $layer->lineColor);
+            $layerDxf->add(6, $layer->lineType);
+            $layerDxf->add(370, $layer->lineWeight*100);
+            $layerDxf->add(390, $this->handles["acdbPlaceHolder"]);
+            $layerTable->addBlock($layerDxf);
+        }
+
         return $layerTable;
     }
 
