@@ -3,7 +3,6 @@ namespace DxfCreator\Drawing;
 
 abstract class Drawable extends Entity
 {
-
     public $lineColor;
     public $lineType;
     public $lineWeight;
@@ -11,25 +10,30 @@ abstract class Drawable extends Entity
     public function setOptions($optionsGiven)
     {
         $options = array_replace($this->getDefaults(), $optionsGiven);
-
-        $this->lineColor = $this->setColor($options["lineColor"]);
-        $this->lineWeight = $this->setWeight($options["lineWeight"]);
+        $this->lineColor = $this->getColor($options["lineColor"]);
+        $this->lineWeight = $this->getWeight($options["lineWeight"]);
         $this->setLineType($options["lineType"]);
         $this->angle = $options["angle"];
-        $this->rotationPoint = $this->setRotationPoint($options["rotationPoint"]);
+        $this->setRotationPoint($options["rotationPoint"]);
+        $this->layer = $options["layer"];
     }
 
     public function setRotationPoint($rotationPoint)
     {
         if (is_array($rotationPoint) && is_numeric($rotationPoint[0]) && is_numeric($rotationPoint[1])){
-            return $rotationPoint;
+            $this->rotationPoint = $rotationPoint;
+            return;
         }
-
-        return $this->center;
+        $this->rotationPoint = $this->center;
+        return;
     }
 
-    public function setColor($color)
+    public function getColor($color)
     {
+        if (empty($color)){
+            return "";
+        }
+
         if (strtoupper($color) == "NONE"){
             return $color;
         }
@@ -54,8 +58,12 @@ abstract class Drawable extends Entity
         return 0;
     }
 
-    public function setWeight($givenWeight)
+    public function getWeight($givenWeight)
     {
+        if (empty($givenWeight)){
+            return "";
+        }
+
         $lineWeights = [0, 0.05, 0.09, 0.13, 0.15, 0.18, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5,
                 0.53, 0.6, 0.7, 0.8, 0.9, 1.0, 1.06, 1.2, 1.4, 1.58, 2.0, 2.11,
         ];
@@ -81,12 +89,16 @@ abstract class Drawable extends Entity
         }
 
 
-
         return $lineWeights[count($lineWeights) - 1];
     }
 
     public function setLineType($givenType)
     {
+        if (empty($givenType)){
+            $this->lineType = "";
+            return;
+        }
+
         $lineTypes = ["solid", "_", "_ ", ".", "_.", "__."];
 
         $type = $givenType;
@@ -123,11 +135,12 @@ abstract class Drawable extends Entity
     public function getDefaults()
     {
         return array(
-                "lineColor" => "0",
-                "lineWeight" => 0.13,
-                "lineType" => "solid",
+                "lineColor" => "",
+                "lineWeight" => "",
+                "lineType" => "",
                 "angle" => 0,
                 "rotationPoint" => $this->center,
+                "layer" => 0,
         );
     }
 }

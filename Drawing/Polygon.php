@@ -45,8 +45,8 @@ class Polygon extends Drawable
         $this->closed = $options["closed"];
         $this->fillType = $this->setFillType($options["fillType"]);
         $this->fillScale = $options["fillScale"];
-        $this->fillColor = $this->setColor($options["fillColor"]);
-        $this->fillWeight = $this->setWeight($options["fillWeight"]);
+        $this->fillColor = $this->getColor($options["fillColor"]);
+        $this->fillWeight = $this->getWeight($options["fillWeight"]);
         $this->cutouts = $options["cutouts"];
     }
 

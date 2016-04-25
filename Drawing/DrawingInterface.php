@@ -33,5 +33,7 @@ interface DrawingInterface
 
     public function defineBlock($name, array $shapes, $fromPage, $x, $y);
 
+    public function defineLayer($name, $options);
+
 
 }
