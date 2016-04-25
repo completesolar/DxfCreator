@@ -14,6 +14,7 @@ use DxfCreator\Drawing\Block;
 use DxfCreator\Drawing\Text;
 use DxfCreator\Drawing\CustomBlockDefinition;
 use DxfCreator\Drawing\Layer;
+use DxfCreator\Drawing\Viewport;
 
 class DxfConverter
 {
@@ -28,6 +29,8 @@ class DxfConverter
     private $blockRecords;
     private $imageDictionary;
     private $handles;
+    private $layerHandles;
+    private $viewportCounter;
 
     public function __construct(Drawing $drawing)
     {
@@ -308,6 +311,7 @@ class DxfConverter
         $this->handles["modelDictionary"] = $this->getNewHandle();
         $this->handles["modelLayout"] = $this->getNewHandle();
         $this->handles["acdbPlaceHolder"] = $this->getNewHandle();
+        $this->viewportCounter = 2;
         $this->initializeSections();
         $this->blockDefinitions = [];
         $this->blockRecords = [];
@@ -579,12 +583,83 @@ class DxfConverter
             case "ELLIPSE":
                 $dxfEntity->addBlock($this->getEllipse($entity));
                 break;
+            case "VIEWPORT":
+                $dxfEntity->addBlock($this->getViewport($entity));
+                break;
             default:
                 throw new \Exception('Class Entity. Type: ' . $entity->type . ' not recognized.');
                 break;
         }
 
         return $dxfEntity;
+    }
+
+    private function getViewport(Viewport $viewport)
+    {
+        $dxfViewport = new DxfBlock();
+        $dxfViewport->add(100, "AcDbViewport");
+        $dxfViewport->add(10, $viewport->center[0]);
+        $dxfViewport->add(20, $viewport->center[1]);
+        $dxfViewport->add(30, "0.0");
+        $dxfViewport->add(40, $viewport->paperWidth);
+        $dxfViewport->add(41, $viewport->paperHeight);
+        $dxfViewport->add(68, $this->viewportCounter);
+        $dxfViewport->add(69, $this->viewportCounter);
+        $dxfViewport->add(12, $viewport->viewCenterPoint[0]);
+        $dxfViewport->add(22, $viewport->viewCenterPoint[1]);
+        $dxfViewport->add(13, "0.0");
+        $dxfViewport->add(23, "0.0");
+        $dxfViewport->add(14, 0.5);
+        $dxfViewport->add(24, 0.5);
+        $dxfViewport->add(15, 0.5);
+        $dxfViewport->add(25, 0.5);
+        $dxfViewport->add(16, "0.0");
+        $dxfViewport->add(26, "0.0");
+        $dxfViewport->add(36, "1.0");
+        $dxfViewport->add(17, "0.0");
+        $dxfViewport->add(27, "0.0");
+        $dxfViewport->add(37, "0.0");
+        $dxfViewport->add(42, "50.0");
+        $dxfViewport->add(43, "0.0");
+        $dxfViewport->add(44, "0.0");
+        $dxfViewport->add(45, $viewport->viewHeight);
+        $dxfViewport->add(50, "0.0");
+        $dxfViewport->add(51, "0.0");
+        $dxfViewport->add(72, 1000);
+
+        foreach ($viewport->frozenLayers as $layer){
+            if (isset($this->layerHandles[$layer])){
+                $dxfViewport->add(331, $this->layerHandles[$layer]);
+            }
+        }
+
+        $dxfViewport->add(90, 819296);
+        $dxfViewport->add(1, "");
+        $dxfViewport->add(281, 0);
+        $dxfViewport->add(71, 1);
+        $dxfViewport->add(74, 0);
+        $dxfViewport->add(110, "0.0");
+        $dxfViewport->add(120, "0.0");
+        $dxfViewport->add(130, "0.0");
+        $dxfViewport->add(111, "1.0");
+        $dxfViewport->add(121, "0.0");
+        $dxfViewport->add(131, "0.0");
+        $dxfViewport->add(112, "0.0");
+        $dxfViewport->add(122, "1.0");
+        $dxfViewport->add(132, "0.0");
+        $dxfViewport->add(79, 0);
+        $dxfViewport->add(146, "0.0");
+        $dxfViewport->add(170, 0);
+        $dxfViewport->add(61, 5);
+        $dxfViewport->add(292, 1);
+        $dxfViewport->add(282, 1);
+        $dxfViewport->add(141, "0.0");
+        $dxfViewport->add(142, "0.0");
+        $dxfViewport->add(63, 250);
+        $dxfViewport->add(421, 3355443);
+
+        $this->viewportCounter++;
+        return $dxfViewport;
     }
 
     private function getHatch(Polygon $polygon, $blockRecordHandle, $page)
@@ -981,10 +1056,12 @@ class DxfConverter
         $layerDxf->add(348, 0);
         $layerTable->addBlock($layerDxf);
 
+        $this->layerHandles = [];
         foreach ($this->drawing->layers as $layer){
+            $this->layerHandles[$layer->name] = $this->getNewHandle();
             $layerDxf = new DxfBlock();
             $layerDxf->add(0, "LAYER");
-            $layerDxf->add(5, $this->getNewHandle());
+            $layerDxf->add(5, $this->layerHandles[$layer->name]);
             $layerDxf->add(330, $layerTableHandle);
             $layerDxf->add(100, "AcDbSymbolTableRecord");
             $layerDxf->add(100, "AcDbLayerTableRecord");
