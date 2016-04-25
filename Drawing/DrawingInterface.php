@@ -23,6 +23,8 @@ interface DrawingInterface
 
     public function drawCircle($page, $radius, $x, $y, $options = []);
 
+    public function drawViewport($page, $x1, $y1, $x2, $y2, $viewCenterX, $viewCenterY, $viewHeight, $frozenLayers = [], $layer = 0);
+
     public function insertPdf($page, $filepath, $pdfPage, $x, $y, $scale, $options = []);
 
     public function insertImage($page, $filepath, $x, $y, $width, $options = []);

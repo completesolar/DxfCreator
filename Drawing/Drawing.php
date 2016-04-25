@@ -111,6 +111,12 @@ class Drawing implements DrawingInterface
         $this->layers[] = new Layer($name, $options);
     }
 
+    public function drawViewport($page, $x1, $y1, $x2, $y2, $viewCenterX, $viewCenterY, $viewHeight, $frozenLayers = [], $layer = 0)
+    {
+        $entity = new Viewport($x1, $y1, $x2, $y2, $viewCenterX, $viewCenterY, $viewHeight, $frozenLayers, $layer);
+        return strtolower($page) == "model" ? $this->modelSpace->add($entity) : $this->pages[$page]->add($entity);
+    }
+
 
 
 }
