@@ -22,6 +22,7 @@ class Block extends Entity
 
         $this->angle = $options["angle"];
         $this->rotationPoint = $options["rotationPoint"];
+        $this->layer = $options["layer"];
     }
 
     public function getDefaults()
@@ -29,6 +30,7 @@ class Block extends Entity
         return array(
                 "angle" => 0,
                 "rotationPoint" => $this->position,
+                "layer" => 0,
         );
     }
 }

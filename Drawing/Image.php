@@ -35,6 +35,7 @@ class Image extends File
 
         $this->angle = $options["angle"];
         $this->rotationPoint = $this->setRotationPoint($options["rotationPoint"]);
+        $this->layer = $options["layer"];
     }
 
     public function setRotationPoint($rotationPoint)
@@ -51,6 +52,7 @@ class Image extends File
         return array(
                 "angle" => 0,
                 "rotationPoint" => $this->center,
+                "layer" => 0,
         );
     }
 }
