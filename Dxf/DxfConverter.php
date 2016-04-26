@@ -295,7 +295,7 @@ class DxfConverter
         }
 
 
-        if ($page == 0 || $page == "model"){
+        if ($page == 0 || $page === "model"){
             $this->entities->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $page));
         } else {
             $layoutBlock->addBlock($this->getEntityBlock($entity, $entityHandle, $blockRecordHandle, $definitionHandle, $page));
@@ -534,7 +534,7 @@ class DxfConverter
     {
         $dxfEntity = new DxfBlock();
 
-        if ($entity->type == "LWPOLYLINE" && $entity->fillColor != "NONE"){
+        if ($entity->type == "LWPOLYLINE" && $entity->fillColor !== "NONE"){
             $dxfEntity->addBlock($this->getHatch($entity, $layoutBlockRecordHandle, $page));
         }
 
@@ -550,13 +550,13 @@ class DxfConverter
         $dxfEntity->add(8, $entity->layer);
 
         if(is_a($entity, "DxfCreator\Drawing\Drawable")){
-            if ($entity->lineType != ""){
+            if ($entity->lineType !== ""){
                 $dxfEntity->add(6, $entity->lineType);
             }
-            if ($entity->lineColor != ""){
+            if ($entity->lineColor !== ""){
                 $dxfEntity->add(62, $entity->lineColor);
             }
-            if ($entity->lineWeight != ""){
+            if ($entity->lineWeight !== ""){
                 $dxfEntity->add(370, intval($entity->lineWeight*100));
             }
         }
@@ -718,7 +718,7 @@ class DxfConverter
 
         if (isset($polygon->cutouts)){
             for ($i = 0; $i < count($polygon->cutouts); $i++){
-                if ($page == "model"){
+                if ($page === "model"){
                     $cutout = $this->drawing->modelSpace->content[$polygon->cutouts[$i]];
                 } else {
                     $cutout = $this->drawing->pages[$page]->content[$polygon->cutouts[$i]];
@@ -1414,7 +1414,7 @@ class DxfConverter
         $preBlock->add(5, $this->getNewHandle());
         $preBlock->add(330, $blockRecordHandle);
         $preBlock->add(100, "AcDbEntity");
-        if ($name != "*Model_Space"){
+        if ($name !== "*Model_Space"){
             $preBlock->add(67, 1);
         }
         $preBlock->add(8, 0);
@@ -1431,7 +1431,7 @@ class DxfConverter
         $postBlock->add(5, $this->getNewHandle());
         $postBlock->add(330, $blockRecordHandle);
         $postBlock->add(100, "AcDbEntity");
-        if ($name != "*Model_Space"){
+        if ($name !== "*Model_Space"){
             $postBlock->add(67, 1);
         }
         $postBlock->add(8, 0);
@@ -1446,7 +1446,7 @@ class DxfConverter
         $record->add(0, "BLOCK_RECORD");
         $record->add(5, $blockRecordHandle);
 
-        if ($name == "*Model_Space"){
+        if ($name === "*Model_Space"){
             $record->add(102, "{ACAD_XDICTIONARY");
             $record->add(360, $this->handles["modelDictionary"]);
             $record->add(102, "}");
