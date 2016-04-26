@@ -34,6 +34,10 @@ class DxfConverter
 
     public function __construct(Drawing $drawing)
     {
+        if (count($drawing->pages) == 0){
+            $drawing->addPage("Layout 1");
+        }
+
         $this->drawing = $drawing;
     }
 
