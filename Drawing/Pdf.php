@@ -13,5 +13,6 @@ class Pdf extends File
         $this->position = [$x, $y];
         $this->scaleFactor = $scale;
         $this->type = "PDFUNDERLAY";
+        $this->layer = (isset($options["layer"]) ? $options["layer"] : 0);
     }
 }
