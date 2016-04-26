@@ -30,7 +30,7 @@ abstract class Drawable extends Entity
 
     public function getColor($color)
     {
-        if (empty($color)){
+        if ($color === ""){
             return "";
         }
 
@@ -60,7 +60,7 @@ abstract class Drawable extends Entity
 
     public function getWeight($givenWeight)
     {
-        if (empty($givenWeight)){
+        if ($givenWeight === ""){
             return "";
         }
 
@@ -94,7 +94,7 @@ abstract class Drawable extends Entity
 
     public function setLineType($givenType)
     {
-        if (empty($givenType)){
+        if ($givenType === ""){
             $this->lineType = "";
             return;
         }

@@ -5,7 +5,7 @@ class Layer extends Drawable
 {
     public $name;
 
-    public function __construct($name, $options = null)
+    public function __construct($name, $options = [])
     {
         $this->name = $name;
         $this->setOptions($options);
@@ -14,7 +14,7 @@ class Layer extends Drawable
     public function getDefaults()
     {
         return array(
-                "lineColor" => "0",
+                "lineColor" => 0,
                 "lineWeight" => "0.13",
                 "lineType" => "solid",
                 "angle" => "",
