@@ -194,15 +194,23 @@ class DxfConverter
 
     private function writeToFile($filePath)
     {
-        $file = new DxfBlock();
-        $file->addBlock($this->header);
-        $file->addBlock($this->tables);
-        $file->addBlock($this->blocks);
-        $file->addBlock($this->entities);
-        $file->addBlock($this->objects);
-        $file->add(0, "EOF");
+        $dxfFile = new DxfBlock();
+        $dxfFile->addBlock($this->header);
+        $dxfFile->addBlock($this->tables);
+        $dxfFile->addBlock($this->blocks);
+        $dxfFile->addBlock($this->entities);
+        $dxfFile->addBlock($this->objects);
+        $dxfFile->add(0, "EOF");
 
-        file_put_contents($filePath, utf8_encode($file->toString()));
+        $file = $dxfFile->toString();
+
+        $fileArray = explode("\n", $file);
+        $utf8File = "";
+        foreach ($fileArray as $line){
+           $utf8File .= iconv(mb_detect_encoding($line, mb_detect_order(), true), "UTF-8", $line) . "\n";
+        }
+
+        file_put_contents($filePath, $utf8File);
     }
 
     private function handseedVariable()
