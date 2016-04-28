@@ -31,6 +31,7 @@ class DxfConverter
     private $handles;
     private $layerHandles;
     private $viewportCounter;
+    private $styles;
 
     public function __construct(Drawing $drawing)
     {
@@ -54,31 +55,100 @@ class DxfConverter
             $file = file_get_contents($definition->filepath);
             $matches = [];
             preg_match("/0(\r)?\nBLOCK(\r)?\n/", $file, $matches, PREG_OFFSET_CAPTURE);
-
-            $file = substr($file, $matches[0][1]);
-            preg_match("/0(\r)?\nENDSEC/", $file, $matches, PREG_OFFSET_CAPTURE);
-            $blocksSection = substr($file, 0, $matches[0][1]);
+            $partialFile = substr($file, $matches[0][1]);
+            preg_match("/0(\r)?\nENDSEC/", $partialFile, $matches, PREG_OFFSET_CAPTURE);
+            $blocksSection = substr($partialFile, 0, $matches[0][1]);
             $blocksSection = str_replace("\r\n", "\n", $blocksSection);
             $blocksSection = str_replace("\n", "\r\n", $blocksSection);
             $blocks = explode("0\r\nBLOCK\r\n", $blocksSection);
             unset($blocks[0]);
-
+            $stylesToAdd = [];
             foreach ($blocks as $block){
-
                 $blockArray = explode("\r\n", trim($block));
                 $dxfBlock = new DxfBlock();
-                $dxfBlock->addArray($blockArray, true);;
-                $name = $this->getBlockName($dxfBlock);
+                $dxfBlock->addArray($blockArray, true);
+                $name = $this->getDxfObjectName($dxfBlock);
                 $basePoint = $this->getBlockBasePoint($dxfBlock);
 
                 if (($definition->names == [] || array_search($name, $definition->names) !== false) && !preg_match("/^\*(Model|Paper)_Space[0-9]*$/", $name)){
                     $blockRecordHandle = $this->getNewHandle();
-                    $content = $this->updateBlockContent($dxfBlock, $blockRecordHandle);
+                    $content = $this->updateBlockContent($dxfBlock, $blockRecordHandle, $stylesToAdd);
                     $this->blockRecords[$name] = new DxfBlockRecord($name, $blockRecordHandle);
                     $this->blockDefinitions[] = new DxfBlockDefinition($name, $basePoint, $content, $this->getNewHandle(), $this->getNewHandle(), $blockRecordHandle);
                 }
             }
+
+            if (!empty($stylesToAdd)){
+                $this->prepareStyleObjects($stylesToAdd, $file);
+            }
         }
+    }
+
+    private function prepareStyleObjects($stylesToAdd, $file)
+    {
+        $matches = [];
+        preg_match("/0(\r)?\nSTYLE(\r)?\n/", $file, $matches, PREG_OFFSET_CAPTURE);
+        $partialFile = substr($file, $matches[0][1]);
+        preg_match("/0(\r)?\nENDTAB/", $partialFile, $matches, PREG_OFFSET_CAPTURE);
+        $styleTable = substr($partialFile, 0, $matches[0][1]);
+        $styleTable = str_replace("\r\n", "\n", $styleTable);
+        $styleTable = str_replace("\n", "\r\n", $styleTable);
+        $stylesAsStrings = explode("0\r\nSTYLE\r\n", $styleTable);
+        unset($stylesAsStrings[0]);
+
+        foreach ($stylesAsStrings as $styleAsString){
+            $styleArray = explode("\r\n", $styleAsString);
+            unset($styleArray[count($styleArray)-1]);
+
+            $dxfStyle = new DxfBlock();
+            $dxfStyle->addArray($styleArray, true);
+            foreach ($stylesToAdd as $styleName){
+                if ($this->getDxfObjectName($dxfStyle) == $styleName){
+                    $this->setStyleObject($dxfStyle, $styleName);
+                }
+                break;
+            }
+        }
+    }
+
+    private function setStyleObject($dxfStyle, $styleName)
+    {
+        $style = new Style($styleName);
+        foreach ($dxfStyle->body as $value){
+            switch ($value[0]){
+                case 3:
+                    $style->fontFile = $value[1];
+                    break;
+                case 4:
+                    $style->bigFontFile = $value[1];
+                    break;
+                case 40:
+                    $style->height = $value[1];
+                    break;
+                case 41:
+                    $style->widthFactor = $value[1];
+                    break;
+                case 42:
+                    $style->lastHeightUsed = $value[1];
+                    break;
+                case 50:
+                    $style->obliqueAngle = $value[1];
+                    break;
+                case 70:
+                    $style->flags = $value[1];
+                    break;
+                case 71:
+                    $style->orientationFlag = $value[1];
+                    break;
+                case 1071:
+                    $style->extraFormatInfo = $value[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        $this->styles[$styleName] = $style;
     }
 
     private function setCustomBlockDefinitions()
@@ -99,9 +169,9 @@ class DxfConverter
         }
     }
 
-    private function getBlockName($dxfBlock)
+    private function getDxfObjectName($dxfObject)
     {
-        foreach ($dxfBlock->body as $value){
+        foreach ($dxfObject->body as $value){
             if ($value[0] == 2){
                return $value[1];
             }
@@ -137,7 +207,7 @@ class DxfConverter
         return [$x, $y];
     }
 
-    private function updateBlockContent($dxfBlock, $blockRecordHandle)
+    private function updateBlockContent($dxfBlock, $blockRecordHandle, array &$stylesToAdd)
     {
         $inContent = false;
         $removed = false;
@@ -160,23 +230,21 @@ class DxfConverter
                     }
                     break;
                 case 7:
-                    if ($entity = "MTEXT"){
-                        unset($dxfBlock->body[$i]);
-                        $dxfBlock->body = array_values($dxfBlock->body);
-                        $removed = true;
-                        $i--;
+                    $styleName = $dxfBlock->body[$i][1];
+                    if(!isset($this->styles[$styleName]) && !in_array($styleName, $stylesToAdd)){
+                        $stylesToAdd[] = $styleName;
                     }
                     break;
-                case 102:
-                    if ($entity = "MTEXT"){
-                        unset($dxfBlock->body[$i]);
-                        unset($dxfBlock->body[$i+1]);
-                        unset($dxfBlock->body[$i+2]);
-                        $dxfBlock->body = array_values($dxfBlock->body);
-                        $removed = true;
-                        $i--;
-                    }
-                    break;
+//                 case 102:
+//                     if ($entity = "MTEXT"){
+//                         unset($dxfBlock->body[$i]);
+//                         unset($dxfBlock->body[$i+1]);
+//                         unset($dxfBlock->body[$i+2]);
+//                         $dxfBlock->body = array_values($dxfBlock->body);
+//                         $removed = true;
+//                         $i--;
+//                     }
+//                     break;
                 case 330:
                     $dxfBlock->body[$i][1] = $blockRecordHandle;
                     break;
@@ -210,7 +278,9 @@ class DxfConverter
            $utf8File .= iconv(mb_detect_encoding($line, mb_detect_order(), true), "UTF-8", $line) . "\n";
         }
 
-        file_put_contents($filePath, $utf8File);
+        $stream = fopen($filePath, "w");
+        fwrite($stream, $utf8File);
+        fclose($stream);
     }
 
     private function handseedVariable()
@@ -328,16 +398,23 @@ class DxfConverter
         $this->blockDefinitions = [];
         $this->blockRecords = [];
         $this->setUpHeader();
+        $this->initializeStyles();
+        $this->setExternalBlockDefinitions();
         $this->setUpTables();
         $this->setUpObjects();
         $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", $this->handles["modelBlockRecord"]));
-        $this->setExternalBlockDefinitions();
         $this->setCustomBlockDefinitions();
 
         foreach ($this->blockDefinitions as $definition){
             $this->blocks->addBlock($definition->toBlock());
         }
 
+    }
+
+    private function initializeStyles()
+    {
+        $this->styles = [];
+        $this->styles["Standard"] = new Style("Standard", "arial.ttf");
     }
 
     private function setUpObjects()
@@ -376,8 +453,11 @@ class DxfConverter
         $ltypeTable->addBlock($this->getLtype("ACAD_ISO11W100", "ISO double-dash dot __ __ . __ __ . __ __ . __", "__.", $this->getNewHandle()));
         $layerTable = $this->getLayerTable();
         $styleTable = $this->createTable("STYLE", $this->handles["styleTable"], 2);
-        $styleTable->addBlock($this->getStyle("Standard", "arial.ttf", $this->getNewHandle()));
-        $styleTable->addBlock($this->getStyle("Label", "romans.shx", $this->getNewHandle()));
+
+        foreach ($this->styles as $style){
+            $styleTable->addBlock($this->getStyle($style, $this->getNewHandle()));
+        }
+
         $viewTable = $this->createTable("VIEW", $this->getNewHandle(), 2);
         $ucsTable = $this->createTable("UCS", $this->getNewHandle(), 0);
         $appidTable = $this->createTable("APPID", $this->handles["appidTable"], 8);
@@ -403,25 +483,27 @@ class DxfConverter
         $this->tables->addBlock($dimstyleTable);
     }
 
-    private function getStyle($name, $fontFile, $handle)
+    private function getStyle(Style $style, $handle)
     {
-        $style = new DxfBlock();
-        $style->add(0, "STYLE");
-        $style->add(5, $handle);
-        $style->add(330, $this->handles["styleTable"]);
-        $style->add(100, "AcDbSymbolTableRecord");
-        $style->add(100, "AcDbTextStyleTableRecord");
-        $style->add(2, $name);
-        $style->add(70, 0);
-        $style->add(40, "0.0");
-        $style->add(41, "1.0");
-        $style->add(50, "0.0");
-        $style->add(71, 0);
-        $style->add(42, 0.2);
-        $style->add(3, $fontFile);
-        $style->add(4, "");
-
-        return $style;
+        $dxfStyle = new DxfBlock();
+        $dxfStyle->add(0, "STYLE");
+        $dxfStyle->add(5, $handle);
+        $dxfStyle->add(330, $this->handles["styleTable"]);
+        $dxfStyle->add(100, "AcDbSymbolTableRecord");
+        $dxfStyle->add(100, "AcDbTextStyleTableRecord");
+        $dxfStyle->add(2, $style->name);
+        $dxfStyle->add(70, $style->flags);
+        $dxfStyle->add(40, $style->height);
+        $dxfStyle->add(41, $style->widthFactor);
+        $dxfStyle->add(50, $style->obliqueAngle);
+        $dxfStyle->add(71, $style->orientationFlag);
+        $dxfStyle->add(42, $style->lastHeightUsed);
+        $dxfStyle->add(3, $style->fontFile);
+        $dxfStyle->add(4, $style->bigFontFile);
+        if(!is_null($style->extraFormatInfo)){
+            $dxfStyle->add(1071, $style->extraFormatInfo);
+        }
+        return $dxfStyle;
     }
 
     private function initializeSections()
@@ -837,7 +919,7 @@ class DxfConverter
         $dxfText->add(40, $text->lineHeight);
         $dxfText->add(1, $text->text);
         $dxfText->add(50, $text->angle);
-        $dxfText->add(7, "Label");
+        $dxfText->add(7, "Standard");
         $dxfText->add(72, $text->horizontalAlignment);
         $dxfText->add(11, $text->position[0]);
         $dxfText->add(21, $text->position[1]);

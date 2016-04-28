@@ -43,15 +43,13 @@ class DxfBlock
 
     public function addArray($lines, $alternating = false)
     {
-        //var_export($lines);
-
         if ($alternating){
             for ($i = 0; $i < count($lines); $i = $i+2){
-                $this->body[] = [trim($lines[$i]), $lines[$i+1]];
+                $this->body[] = [trim($lines[$i]), trim($lines[$i+1])];
             }
         } else {
             foreach ($lines as $line){
-                $this->add(trim($line[0]), $line[1]);
+                $this->add(trim($line[0]), trim($line[1]));
             }
         }
     }
