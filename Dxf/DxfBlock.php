@@ -11,6 +11,20 @@ class DxfBlock
         }
     }
 
+    public function getBody()
+    {
+        $bodyAsArray = [];
+        foreach($this->body as $entry){
+            if(gettype($entry) == "object"){
+                $bodyAsArray = array_merge($bodyAsArray, $entry->getBody());
+            } else {
+                $bodyAsArray[] = $entry;
+            }
+        }
+
+        return $bodyAsArray;
+    }
+
     public function add($code, $value)
     {
         $this->body[] = [$code, $value];
