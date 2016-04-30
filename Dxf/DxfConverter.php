@@ -16,6 +16,17 @@ use DxfCreator\Drawing\CustomBlockDefinition;
 use DxfCreator\Drawing\Layer;
 use DxfCreator\Drawing\Viewport;
 
+/**
+ *
+ * @author Jake Strang
+ *
+ * Developer Notes:
+ * - This class has poor naming. The term Block is overused and can mean several things.
+ * - Memory runs out fast when importing external files. That part should be redesigned to save memory
+ *  (ie. each BLOCK could be managed individually).
+ *
+ */
+
 class DxfConverter
 {
     private $drawing;
@@ -70,6 +81,7 @@ class DxfConverter
             $name = $this->getDxfObjectName($dxfBlock);
             $basePoint = $this->getBlockBasePoint($dxfBlock);
 
+            // Dimension objects reference special blocks, that have names starting with "*D"
             if (($names == [] || array_search($name, $names) !== false || substr($name, 0, 2) === "*D") && !preg_match("/^\*(Model|Paper)_Space[0-9]*$/", $name)){
                 $blockRecordHandle = $this->getNewHandle();
                 $content = $this->updateBlockContent($dxfBlock, $blockRecordHandle);
@@ -282,6 +294,7 @@ class DxfConverter
                 // There are going to be issues if you include a hatch with cutouts in a CustomBlockDefinition.
                 // TODO: Cutout logic will need to be redesigned.
                 // Images/PDFs cannot be included in blocks for now.
+                // What happens when a custom block has a custom block inside it?
                 $dxfShapes->addBlock($this->getEntityBlock($shape, $this->getNewHandle(), $blockRecordHandle, null, null));
             }
 
@@ -375,9 +388,11 @@ class DxfConverter
         $dxfFile->add(0, "EOF");
 
         $file = $dxfFile->toString();
-
         $fileArray = explode("\n", $file);
         $utf8File = "";
+
+        // Content from imported blocks is already in UTF8. This was the only way I could get special characters
+        // to work consistently.
         foreach ($fileArray as $line){
            $utf8File .= iconv(mb_detect_encoding($line, mb_detect_order(), true), "UTF-8", $line) . "\n";
         }
@@ -524,7 +539,6 @@ class DxfConverter
             $this->setExternalTable("STYLE", $file);
             $this->setExternalTable("LTYPE", $file);
             $this->setExternalTable("DIMSTYLE", $file);
-
         }
     }
 
@@ -564,6 +578,7 @@ class DxfConverter
         ];
 
         foreach ($defaultLtypes as $defaultLtype){
+            // This code was redesigned in a hurry using existing code fragments, thus it does its job in a very round-about way.
             $dxfLtype = $this->getLtypeDxfBlockFromPattern($defaultLtype[0], $defaultLtype[1], $defaultLtype[2]);
             $ltype = new LineType($this->getDxfObjectName($dxfLtype));
             foreach ($dxfLtype->getBody() as $value){
@@ -1212,6 +1227,7 @@ class DxfConverter
         $text = $this->smartReplace('\-', '\fSymbol|b0|i0|c2|p18;' . "· " . $formatTag, $text);
         $textString =  '\A1;{' . $formatTag . $underlineBegin . $text . $underlineEnd . '}';
 
+        // Strings in a dxf file must be divided at exactly 250 characters
         $chunks = str_split($textString, 250);
 
         $dxfString = new DxfBlock();
@@ -1230,6 +1246,7 @@ class DxfConverter
     private function smartReplace($searchString, $replaceString, $text)
     {
         $searchString = preg_quote($searchString);
+        // Replace 'searchString' with 'replaceString' if it is preceded by an odd number of backslashes (after PHP escaping and Regex escaping).
         return preg_replace('/(^|[^\\\\])(\\\\\\\\)*\\K' . $searchString . '/', $replaceString, $text);
     }
 
@@ -1915,6 +1932,8 @@ class DxfConverter
 
     private function setVariables()
     {
+        // AC1027 represnets AutoCAD 2013
+        // EXTMAX and EXTMIN definitely do nothing useful here.
         $variables = [
                 '$ACADVER' => [1 => "AC1027"],
                 '$INSBASE' => [10 => "0.0", 20 => "0.0", 30 => "0.0"],
