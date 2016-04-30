@@ -29,9 +29,11 @@ class DxfConverter
     private $blockRecords;
     private $imageDictionary;
     private $handles;
-    private $layerHandles;
     private $viewportCounter;
     private $styles;
+    private $layers;
+    private $ltypes;
+    private $dimStyles;
 
     public function __construct(Drawing $drawing)
     {
@@ -49,72 +51,190 @@ class DxfConverter
         $this->writeToFile($filePath);
     }
 
-    private function setExternalBlockDefinitions()
+    private function setExternalBlockDefinitions($file, $names)
     {
-        foreach ($this->drawing->blockDefinitionFiles as $definition){
-            $file = file_get_contents($definition->filepath);
-            $matches = [];
-            preg_match("/0(\r)?\nBLOCK(\r)?\n/", $file, $matches, PREG_OFFSET_CAPTURE);
-            $partialFile = substr($file, $matches[0][1]);
-            preg_match("/0(\r)?\nENDSEC/", $partialFile, $matches, PREG_OFFSET_CAPTURE);
-            $blocksSection = substr($partialFile, 0, $matches[0][1]);
-            $blocksSection = str_replace("\r\n", "\n", $blocksSection);
-            $blocksSection = str_replace("\n", "\r\n", $blocksSection);
-            $blocks = explode("0\r\nBLOCK\r\n", $blocksSection);
-            unset($blocks[0]);
-            $stylesToAdd = [];
-            foreach ($blocks as $block){
-                $blockArray = explode("\r\n", trim($block));
-                $dxfBlock = new DxfBlock();
-                $dxfBlock->addArray($blockArray, true);
-                $name = $this->getDxfObjectName($dxfBlock);
-                $basePoint = $this->getBlockBasePoint($dxfBlock);
+        $matches = [];
+        preg_match("/0(\r)?\nBLOCK(\r)?\n/", $file, $matches, PREG_OFFSET_CAPTURE);
+        $partialFile = substr($file, $matches[0][1]);
+        preg_match("/0(\r)?\nENDSEC/", $partialFile, $matches, PREG_OFFSET_CAPTURE);
+        $blocksSection = substr($partialFile, 0, $matches[0][1]);
+        $blocksSection = str_replace("\r\n", "\n", $blocksSection);
+        $blocksSection = str_replace("\n", "\r\n", $blocksSection);
+        $blocks = explode("0\r\nBLOCK\r\n", $blocksSection);
+        unset($blocks[0]);
+        $stylesToAdd = [];
+        foreach ($blocks as $block){
+            $blockArray = explode("\r\n", trim($block));
+            $dxfBlock = new DxfBlock();
+            $dxfBlock->addArray($blockArray, true);
+            $name = $this->getDxfObjectName($dxfBlock);
+            $basePoint = $this->getBlockBasePoint($dxfBlock);
 
-                if (($definition->names == [] || array_search($name, $definition->names) !== false) && !preg_match("/^\*(Model|Paper)_Space[0-9]*$/", $name)){
-                    $blockRecordHandle = $this->getNewHandle();
-                    $content = $this->updateBlockContent($dxfBlock, $blockRecordHandle, $stylesToAdd);
-                    $this->blockRecords[$name] = new DxfBlockRecord($name, $blockRecordHandle);
-                    $this->blockDefinitions[] = new DxfBlockDefinition($name, $basePoint, $content, $this->getNewHandle(), $this->getNewHandle(), $blockRecordHandle);
-                }
-            }
-
-            if (!empty($stylesToAdd)){
-                $this->prepareStyleObjects($stylesToAdd, $file);
+            if (($names == [] || array_search($name, $names) !== false || substr($name, 0, 2) === "*D") && !preg_match("/^\*(Model|Paper)_Space[0-9]*$/", $name)){
+                $blockRecordHandle = $this->getNewHandle();
+                $content = $this->updateBlockContent($dxfBlock, $blockRecordHandle);
+                $this->blockRecords[$name] = new DxfBlockRecord($name, $blockRecordHandle);
+                $this->blockDefinitions[] = new DxfBlockDefinition($name, $basePoint, $content, $this->getNewHandle(), $this->getNewHandle(), $blockRecordHandle);
             }
         }
     }
 
-    private function prepareStyleObjects($stylesToAdd, $file)
+    private function setExternalTable($tableName, $file)
     {
         $matches = [];
-        preg_match("/0(\r)?\nSTYLE(\r)?\n/", $file, $matches, PREG_OFFSET_CAPTURE);
+        preg_match("/0(\r)?\n$tableName(\r)?\n/", $file, $matches, PREG_OFFSET_CAPTURE);
         $partialFile = substr($file, $matches[0][1]);
         preg_match("/0(\r)?\nENDTAB/", $partialFile, $matches, PREG_OFFSET_CAPTURE);
-        $styleTable = substr($partialFile, 0, $matches[0][1]);
-        $styleTable = str_replace("\r\n", "\n", $styleTable);
-        $styleTable = str_replace("\n", "\r\n", $styleTable);
-        $stylesAsStrings = explode("0\r\nSTYLE\r\n", $styleTable);
-        unset($stylesAsStrings[0]);
+        $table = substr($partialFile, 0, $matches[0][1]);
+        $table = str_replace("\r\n", "\n", $table);
+        $table = str_replace("\n", "\r\n", $table);
+        $entriesAsStrings = explode("0\r\n$tableName\r\n", $table);
+        unset($entriesAsStrings[0]);
 
-        foreach ($stylesAsStrings as $styleAsString){
-            $styleArray = explode("\r\n", $styleAsString);
-            unset($styleArray[count($styleArray)-1]);
+        foreach ($entriesAsStrings as $entryAsString){
+            $entryAsArray = explode("\r\n", $entryAsString);
+            unset($entryAsArray[count($entryAsArray)-1]);
 
-            $dxfStyle = new DxfBlock();
-            $dxfStyle->addArray($styleArray, true);
-            foreach ($stylesToAdd as $styleName){
-                if ($this->getDxfObjectName($dxfStyle) == $styleName){
-                    $this->setStyleObject($dxfStyle, $styleName);
-                }
-                break;
+            $dxfEntry = new DxfBlock();
+            $dxfEntry->addArray($entryAsArray, true);
+            $name = $this->getDxfObjectName($dxfEntry);
+
+            switch($tableName){
+                case "LAYER":
+                    if (!isset($this->layers[$name])){
+                        $this->setLayerObject($dxfEntry, $name);
+                    }
+                    break;
+                case "LTYPE":
+                    if (!isset($this->ltypes[$name])){
+                        $this->setLtypeObject($dxfEntry, $name);
+                    }
+                    break;
+                case "STYLE":
+                    if (!isset($this->styles[$name])){
+                        $this->setStyleObject($dxfEntry, $name);
+                    }
+                    break;
+                case "DIMSTYLE":
+                    if (!isset($this->styles[$name])){
+                        $this->setDimStyleObject($dxfEntry, $name);
+                    }
+                default:
+                    break;
             }
         }
+    }
+
+    private function setLtypeObject($ltype, $name)
+    {
+        if (isset($this->ltypes[$name])){
+            return;
+        }
+
+        $ltypeObject = new LineType($name);
+        foreach ($ltype->getBody() as $value){
+            switch ($value[0]){
+                case 3:
+                    $ltypeObject->description = $value[1];
+                    break;
+                case 40:
+                    $ltypeObject->patternLength = $value[1];
+                    break;
+                case 49:
+                    $ltypeObject->lengths[] = $value[1];
+                    break;
+                case 70:
+                    $ltypeObject->flags = $value[1];
+                    break;
+                case 72:
+                    $ltypeObject->alignmentCode = $value[1];
+                    break;
+                case 73:
+                    $ltypeObject->lineTypeElementCount = $value[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        $this->ltypes[$name] = $ltypeObject;
+    }
+
+    private function setLayerObject($layer, $name)
+    {
+        if (isset($this->layers[$name])){
+            return;
+        }
+
+        $dxfLayer = new DxfLayer($name);
+        foreach ($layer->getBody() as $value){
+            switch ($value[0]){
+                case 6:
+                    $dxfLayer->lineTypeName = $value[1];
+                    break;
+                case 62:
+                    $dxfLayer->color = $value[1];
+                    break;
+                case 70:
+                    $dxfLayer->flags = $value[1];
+                    break;
+                case 290:
+                    $dxfLayer->plottingFlag = $value[1];
+                    break;
+                case 370:
+                    $dxfLayer->lineWeight = $value[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        $this->layers[$name] = $dxfLayer;
+    }
+
+    private function setDimStyleObject($dxfDimStyle, $name)
+    {
+        if (isset($this->dimStyles[$name])){
+            return;
+        }
+
+        $dimstyle = new DimStyle($name);
+        foreach ($dxfDimStyle->getBody() as $value){
+            switch (true){
+                case $value[0] == 70:
+                    $dimstyle->flags = $value[1];
+                    break;
+                case $value[0] == 2:
+                    break;
+                case $value[0] == 100:
+                    break;
+                case $value[0] == 102:
+                    break;
+                case $value[0] == 105:
+                    break;
+                case $value[0] == 330:
+                    break;
+                case $value[0] == 360:
+                    break;
+                case $value[0] <= 289:
+                    $dimstyle->dimAttributes[$value[0]] = $value[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        $this->dimStyles[$name] = $dimstyle;
     }
 
     private function setStyleObject($dxfStyle, $styleName)
     {
+        if (isset($this->styles[$styleName])){
+            return;
+        }
+
         $style = new Style($styleName);
-        foreach ($dxfStyle->body as $value){
+        foreach ($dxfStyle->getBody() as $value){
             switch ($value[0]){
                 case 3:
                     $style->fontFile = $value[1];
@@ -171,7 +291,7 @@ class DxfConverter
 
     private function getDxfObjectName($dxfObject)
     {
-        foreach ($dxfObject->body as $value){
+        foreach ($dxfObject->getBody() as $value){
             if ($value[0] == 2){
                return $value[1];
             }
@@ -207,7 +327,7 @@ class DxfConverter
         return [$x, $y];
     }
 
-    private function updateBlockContent($dxfBlock, $blockRecordHandle, array &$stylesToAdd)
+    private function updateBlockContent($dxfBlock, $blockRecordHandle)
     {
         $inContent = false;
         $removed = false;
@@ -229,22 +349,6 @@ class DxfConverter
                         $dxfBlock->body[$i][1] = $this->getNewHandle();
                     }
                     break;
-                case 7:
-                    $styleName = $dxfBlock->body[$i][1];
-                    if(!isset($this->styles[$styleName]) && !in_array($styleName, $stylesToAdd)){
-                        $stylesToAdd[] = $styleName;
-                    }
-                    break;
-//                 case 102:
-//                     if ($entity = "MTEXT"){
-//                         unset($dxfBlock->body[$i]);
-//                         unset($dxfBlock->body[$i+1]);
-//                         unset($dxfBlock->body[$i+2]);
-//                         $dxfBlock->body = array_values($dxfBlock->body);
-//                         $removed = true;
-//                         $i--;
-//                     }
-//                     break;
                 case 330:
                     $dxfBlock->body[$i][1] = $blockRecordHandle;
                     break;
@@ -398,8 +502,8 @@ class DxfConverter
         $this->blockDefinitions = [];
         $this->blockRecords = [];
         $this->setUpHeader();
-        $this->initializeStyles();
-        $this->setExternalBlockDefinitions();
+        $this->initializeTableEntries();
+        $this->importExternalData();
         $this->setUpTables();
         $this->setUpObjects();
         $this->blocks->addBlock($this->createLayoutBlock("*Model_Space", $this->handles["modelBlockRecord"]));
@@ -411,10 +515,101 @@ class DxfConverter
 
     }
 
-    private function initializeStyles()
+    private function importExternalData()
+    {
+        foreach ($this->drawing->blockDefinitionFiles as $fileObject){
+            $file = file_get_contents($fileObject->filepath);
+            $this->setExternalBlockDefinitions($file, $fileObject->names);
+            $this->setExternalTable("LAYER", $file);
+            $this->setExternalTable("STYLE", $file);
+            $this->setExternalTable("LTYPE", $file);
+            $this->setExternalTable("DIMSTYLE", $file);
+
+        }
+    }
+
+    private function initializeTableEntries()
+    {
+        $this->setDefaultStyles();
+        $this->setDefaultLtypes();
+        $this->setDefaultLayers();
+        $this->setDefaultDimStyles();
+        $this->setUserDefinedLayers();
+    }
+
+    private function setDefaultDimStyles()
+    {
+        $this->dimStyles = [];
+        $this->dimStyles["Standard"] = new DimStyle("Standard");
+    }
+
+    private function setDefaultStyles()
     {
         $this->styles = [];
         $this->styles["Standard"] = new Style("Standard", "arial.ttf");
+    }
+
+    private function setDefaultLtypes()
+    {
+        $this->ltypes = [];
+        $defaultLtypes = [
+                ["ByBlock", "", ""],
+                ["ByLayer", "", ""],
+                ["Continuous", "Solid line", ""],
+                ["ACAD_ISO02W100", "ISO dash __ __ __ __ __ __ __ __ __ __ __ __ __", "_"],
+                ["ACAD_ISO03W100", "ISO dash space __    __    __    __    __    __", "_ "],
+                ["ACAD_ISO07W100", "ISO dot . . . . . . . . . . . . . . . . . . . .", "."],
+                ["ACAD_ISO10W100", "ISO dash dot __ . __ . __ . __ . __ . __ . __ .", "_."],
+                ["ACAD_ISO11W100", "ISO double-dash dot __ __ . __ __ . __ __ . __", "__."]
+        ];
+
+        foreach ($defaultLtypes as $defaultLtype){
+            $dxfLtype = $this->getLtypeDxfBlockFromPattern($defaultLtype[0], $defaultLtype[1], $defaultLtype[2]);
+            $ltype = new LineType($this->getDxfObjectName($dxfLtype));
+            foreach ($dxfLtype->getBody() as $value){
+                switch ($value[1]){
+                    case 70:
+                        $ltype->flags = $value[1];
+                        break;
+                    case 3:
+                        $ltype->description = $value[1];
+                        break;
+                    case 72:
+                        $ltype->alignmentCode = $value[1];
+                        break;
+                    case 73:
+                        $ltype->lineTypeElementCount = $value[1];
+                        break;
+                    case 40:
+                        $ltype->patternLength = $value[1];
+                        break;
+                    case 49:
+                        $ltype->lengths[] = $value[1];
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            $this->ltypes[$ltype->name] = $ltype;
+        }
+    }
+
+    private function setDefaultLayers()
+    {
+        $this->layers = [];
+        $this->layers[0] = new DxfLayer(0);
+    }
+
+    private function setUserDefinedLayers()
+    {
+        foreach ($this->drawing->layers as $userDefinedLayer){
+            $layer = new DxfLayer($userDefinedLayer->name);
+            $layer->color = $userDefinedLayer->lineColor;
+            $layer->lineTypeName = $userDefinedLayer->lineType;
+            $layer->lineWeight = $userDefinedLayer->lineWeight*100;
+            $this->layers[$layer->name] = $layer;
+        }
     }
 
     private function setUpObjects()
@@ -432,6 +627,28 @@ class DxfConverter
         $this->layoutDictionary = $this->createLayoutDictionary();
     }
 
+    private function getLayerAsDxfBlock(DxfLayer $layer, $handle)
+    {
+        $dxfBlock = new DxfBlock();
+        $dxfBlock->add(0, "LAYER");
+        $dxfBlock->add(5, $handle);
+        $dxfBlock->add(330, $this->handles["layerTable"]);
+        $dxfBlock->add(100, "AcDbSymbolTableRecord");
+        $dxfBlock->add(100, "AcDbLayerTableRecord");
+        $dxfBlock->add(2, $layer->name);
+        $dxfBlock->add(70, $layer->flags);
+        $dxfBlock->add(62, $layer->color);
+        $dxfBlock->add(6, $layer->lineTypeName);
+
+        if (!is_null($layer->plottingFlag)){
+            $dxfBlock->add(290, $layer->plottingFlag);
+        }
+
+        $dxfBlock->add(370, $layer->lineWeight);
+        $dxfBlock->add(390, $this->handles["acdbPlaceHolder"]);
+
+        return $dxfBlock;
+    }
 
     private function setUpTables()
     {
@@ -439,23 +656,39 @@ class DxfConverter
         $this->handles["ltypeTable"] = $this->getNewHandle();
         $this->handles["vportTable"] = $this->getNewHandle();
         $this->handles["styleTable"] = $this->getNewHandle();
+        $this->handles["layerTable"] = $this->getNewHandle();
+        $this->handles["dimStyleTable"] = $this->getNewHandle();
 
         $vportTable = $this->createTable("VPORT", $this->getNewHandle(), 1);
         $vportTable->addBlock($this->getVport());
-        $ltypeTable = $this->createTable("LTYPE", $this->handles["ltypeTable"], 1);
-        $ltypeTable->addBlock($this->getLtype("ByBlock", "", "", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ByLayer", "", "", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("Continuous", "Solid line", "", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ACAD_ISO02W100", "ISO dash __ __ __ __ __ __ __ __ __ __ __ __ __", "_", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ACAD_ISO03W100", "ISO dash space __    __    __    __    __    __", "_ ", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ACAD_ISO07W100", "ISO dot . . . . . . . . . . . . . . . . . . . .", ".", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ACAD_ISO10W100", "ISO dash dot __ . __ . __ . __ . __ . __ . __ .", "_.", $this->getNewHandle()));
-        $ltypeTable->addBlock($this->getLtype("ACAD_ISO11W100", "ISO double-dash dot __ __ . __ __ . __ __ . __", "__.", $this->getNewHandle()));
-        $layerTable = $this->getLayerTable();
+        $ltypeTable = $this->createTable("LTYPE", $this->handles["ltypeTable"], count($this->ltypes));
+        $layerTable = $this->createTable("LAYER", $this->handles["layerTable"], count($this->layers));
+        $dimStyleStandardHandle = $this->getNewHandle();
+        $dimStyleTable = $this->createTable("DIMSTYLE", $this->handles["dimStyleTable"], count($this->dimStyles));
+        $dimStyleTable->add(100, "AcDbDimStyleTable");
+        $dimStyleTable->add(71, 2);
+        $dimStyleTable->add(340, $dimStyleStandardHandle);
+
         $styleTable = $this->createTable("STYLE", $this->handles["styleTable"], 2);
 
+        foreach ($this->ltypes as $ltype){
+            $ltypeTable->addBlock($this->getLtypeAsDxfBlock($ltype, $this->getNewHandle()));
+        }
+
+        foreach ($this->layers as $layer){
+            $layerTable->addBlock($this->getLayerAsDxfBlock($layer, $this->getNewHandle()));
+        }
+
         foreach ($this->styles as $style){
-            $styleTable->addBlock($this->getStyle($style, $this->getNewHandle()));
+            $styleTable->addBlock($this->getStyleAsDxfBlock($style, $this->getNewHandle()));
+        }
+
+        foreach ($this->dimStyles as $name => $dimStyle){
+            if ($name === "Standard"){
+                $dimStyleTable->addBlock($this->getDimStyleAsDxfBlock($dimStyle, $dimStyleStandardHandle));
+            } else {
+                $dimStyleTable->addBlock($this->getDimStyleAsDxfBlock($dimStyle, $this->getNewHandle()));
+            }
         }
 
         $viewTable = $this->createTable("VIEW", $this->getNewHandle(), 2);
@@ -471,7 +704,6 @@ class DxfConverter
         $appidTable->addBlock($this->getAppid("ACAD_PSEXT", $this->getNewHandle()));
         $appidTable->addBlock($this->getAppid("GradientColor1ACI", $this->getNewHandle()));
         $appidTable->addBlock($this->getAppid("GradientColor2ACI", $this->getNewHandle()));
-        $dimstyleTable = $this->getDimstyleTable();
 
         $this->tables->addBlock($vportTable);
         $this->tables->addBlock($ltypeTable);
@@ -480,10 +712,10 @@ class DxfConverter
         $this->tables->addBlock($viewTable);
         $this->tables->addBlock($ucsTable);
         $this->tables->addBlock($appidTable);
-        $this->tables->addBlock($dimstyleTable);
+        $this->tables->addBlock($dimStyleTable);
     }
 
-    private function getStyle(Style $style, $handle)
+    private function getStyleAsDxfBlock(Style $style, $handle)
     {
         $dxfStyle = new DxfBlock();
         $dxfStyle->add(0, "STYLE");
@@ -504,6 +736,24 @@ class DxfConverter
             $dxfStyle->add(1071, $style->extraFormatInfo);
         }
         return $dxfStyle;
+    }
+
+    private function getDimStyleAsDxfBlock(DimStyle $dimStyle, $handle)
+    {
+        $dxfDimStyle = new DxfBlock();
+        $dxfDimStyle->add(0, "DIMSTYLE");
+        $dxfDimStyle->add(105, $handle);
+        $dxfDimStyle->add(330, $this->handles["dimStyleTable"]);
+        $dxfDimStyle->add(100, "AcDbSymbolTableRecord");
+        $dxfDimStyle->add(100, "AcDbDimStyleTableRecord");
+        $dxfDimStyle->add(2, $dimStyle->name);
+        $dxfDimStyle->add(70, $dimStyle->flags);
+
+        foreach ($dimStyle->dimAttributes as $key => $attribute){
+            $dxfDimStyle->add($key, $attribute);
+        }
+
+        return $dxfDimStyle;
     }
 
     private function initializeSections()
@@ -722,8 +972,8 @@ class DxfConverter
         $dxfViewport->add(72, 1000);
 
         foreach ($viewport->frozenLayers as $layer){
-            if (isset($this->layerHandles[$layer])){
-                $dxfViewport->add(331, $this->layerHandles[$layer]);
+            if (isset($this->layers[$layer])){
+                $dxfViewport->add(331, $this->layers[$layer]->handle);
             }
         }
 
@@ -878,9 +1128,6 @@ class DxfConverter
 
     private function getEllipse(Ellipse $ellipse)
     {
-
-        // This needs major redoing. Right now only works for circles.
-
         $dxfEllipse = new DxfBlock();
         $dxfEllipse->add(100, "AcDbEllipse");
         $dxfEllipse->add(10, $ellipse->center[0]);
@@ -1019,12 +1266,6 @@ class DxfConverter
 
         $objects = new DxfBlock();
         $objects->addBlock($this->createDictionary($this->handles["modelDictionary"], $this->handles["modelBlockRecord"]));
-//         $objects->addBlock($this->createDictionary("1FE", "1FD"));
-//         $objects->add(3, "ASDK_XREC_ANNOTATION_SCALE_INFO");
-//         $objects->add(360, "1FF");
-//         $objects->addBlock($this->createDictionary("202", "201"));
-//         $objects->add(3, "ASDK_XREC_ANNOTATION_SCALE_INFO");
-//         $objects->add(360, 203);
         $objects->add(0, "DICTIONARY");
         $objects->add(5, $this->handles["ACAD_GROUP"]);
         $objects->add(102, "{ACAD_REACTORS");
@@ -1150,20 +1391,23 @@ class DxfConverter
         $layerDxf->add(348, 0);
         $layerTable->addBlock($layerDxf);
 
-        $this->layerHandles = [];
-        foreach ($this->drawing->layers as $layer){
-            $this->layerHandles[$layer->name] = $this->getNewHandle();
+        foreach ($this->layers as $layer){
             $layerDxf = new DxfBlock();
             $layerDxf->add(0, "LAYER");
-            $layerDxf->add(5, $this->layerHandles[$layer->name]);
+            $layerDxf->add(5, $layer->handle);
             $layerDxf->add(330, $layerTableHandle);
             $layerDxf->add(100, "AcDbSymbolTableRecord");
             $layerDxf->add(100, "AcDbLayerTableRecord");
             $layerDxf->add(2, $layer->name);
-            $layerDxf->add(70, 0);
-            $layerDxf->add(62, $layer->lineColor);
-            $layerDxf->add(6, $layer->lineType);
-            $layerDxf->add(370, $layer->lineWeight*100);
+            $layerDxf->add(70, $layer->flags);
+            $layerDxf->add(62, $layer->color);
+            $layerDxf->add(6, $layer->lineTypeName);
+
+            if (is_null($layer->plottingFlag)){
+                $layerDxf->add(290, $layer->plottingFlag);
+            }
+
+            $layerDxf->add(370, $layer->lineWeight);
             $layerDxf->add(390, $this->handles["acdbPlaceHolder"]);
             $layerTable->addBlock($layerDxf);
         }
@@ -1171,13 +1415,35 @@ class DxfConverter
         return $layerTable;
     }
 
+    private function getLtypeAsDxfBlock(LineType $ltype, $handle)
+    {
+        $dxfLtype = new DxfBlock();
+        $dxfLtype->add(0, "LTYPE");
+        $dxfLtype->add(5, $handle);
+        $dxfLtype->add(330, $this->handles["ltypeTable"]);
+        $dxfLtype->add(100, "AcDbSymbolTableRecord");
+        $dxfLtype->add(100, "AcDbLinetypeTableRecord");
+        $dxfLtype->add(2, $ltype->name);
+        $dxfLtype->add(70, $ltype->flags);
+        $dxfLtype->add(3, $ltype->description);
+        $dxfLtype->add(72, $ltype->alignmentCode);
+        $dxfLtype->add(73, $ltype->lineTypeElementCount);
+        $dxfLtype->add(40, $ltype->patternLength);
 
-    private function getLtype($name, $description, $pattern, $handle)
+        foreach ($ltype->lengths as $length){
+            $dxfLtype->add(49, $length);
+            $dxfLtype->add(74, 0);
+        }
+
+        return $dxfLtype;
+    }
+
+    private function getLtypeDxfBlockFromPattern($name, $description, $pattern, $handle = "")
     {
         $ltype = new DxfBlock();
         $ltype->add(0, "LTYPE");
         $ltype->add(5, $handle);
-        $ltype->add(330, $this->handles["ltypeTable"]);
+        $ltype->add(330, "");
         $ltype->add(100, "AcDbSymbolTableRecord");
         $ltype->add(100, "AcDbLinetypeTableRecord");
         $ltype->add(2, $name);
@@ -1359,7 +1625,7 @@ class DxfConverter
         $layout->add(43, 19.05);
         $layout->add(44, 215.9);
         $layout->add(45, 279.4);
-        $layout->add(46, "0.0"); //play around with all these
+        $layout->add(46, "0.0");
         $layout->add(47, "0.0");
         $layout->add(48, "0.0");
         $layout->add(49, "0.0");
@@ -1424,7 +1690,7 @@ class DxfConverter
         $layout->add(330, $this->handles["ACAD_LAYOUT"]);
         $layout->add(100, "AcDbPlotSettings");
         $layout->add(1, "");
-        $layout->add(2, "Kyocera TASKalfa 3050ci XPS"); // don't hardcode this
+        $layout->add(2, "");
         $layout->add(4, "");
         $layout->add(6, "");
         $layout->add(40, $marginL * 25.4);
@@ -1433,7 +1699,7 @@ class DxfConverter
         $layout->add(43, $marginT * 25.4);
         $layout->add(44, $width * 25.4);
         $layout->add(45, $height * 25.4);
-        $layout->add(46, "0.0"); //play around with all these
+        $layout->add(46, "0.0");
         $layout->add(47, "0.0");
         $layout->add(48, "0.0");
         $layout->add(49, "0.0");
@@ -1546,12 +1812,12 @@ class DxfConverter
             $record->add(102, "}");
         }
 
-        $record->add(330, 1); // This probably references something
+        $record->add(330, 1);
         $record->add(100, "AcDbSymbolTableRecord");
         $record->add(100, "AcDbBlockTableRecord");
         $record->add(2, $name);
         $record->add(340, $layoutHandle);
-        $record->add(70, 0); // Inserts is hardcoded for now
+        $record->add(70, 0);
         $record->add(280, 1);
         $record->add(281, 0);
         return $record;
@@ -1649,7 +1915,6 @@ class DxfConverter
 
     private function setVariables()
     {
-        // For now just hardcoded
         $variables = [
                 '$ACADVER' => [1 => "AC1027"],
                 '$INSBASE' => [10 => "0.0", 20 => "0.0", 30 => "0.0"],
