@@ -128,7 +128,7 @@ class DxfConverter
                     }
                     break;
                 case "DIMSTYLE":
-                    if (!isset($this->styles[$name])){
+                    if (!isset($this->dimStyles[$name])){
                         $this->setDimStyleObject($dxfEntry, $name);
                     }
                 default:
@@ -1224,7 +1224,7 @@ class DxfConverter
         $underlineBegin = $mText->underline? '\L' : '';
         $underlineEnd = $mText->underline? '\l' : '';
         $formatTag = '\f' . $mText->font . '|b' . $bold . '|i' . $italic . '|c0|p0;';
-        $text = $this->smartReplace('\-', '\fSymbol|b0|i0|c2|p18;' . "· " . $formatTag, $text);
+        $text = $this->smartReplace('\-', '\fSymbol|b0|i0|c2|p18;' . "Â· " . $formatTag, $text);
         $textString =  '\A1;{' . $formatTag . $underlineBegin . $text . $underlineEnd . '}';
 
         // Strings in a dxf file must be divided at exactly 250 characters
