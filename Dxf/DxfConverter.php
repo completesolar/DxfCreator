@@ -128,7 +128,7 @@ class DxfConverter
                     }
                     break;
                 case "DIMSTYLE":
-                    if (!isset($this->styles[$name])){
+                    if (!isset($this->dimStyles[$name])){
                         $this->setDimStyleObject($dxfEntry, $name);
                     }
                 default:
