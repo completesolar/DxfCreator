@@ -1,6 +1,6 @@
 {
     "require": {
-        "phpunit/phpunit": "^4.8"
+        "phpunit/phpunit": "^12.5"
     },
     "autoload": {
         "psr-4": {
